@@ -1,0 +1,7 @@
+redis
+pycrypto
+Flask
+Flask-RESTful
+Flask-HTTPAuth
+requests
+SimpleConfigParser

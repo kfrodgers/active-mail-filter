@@ -1,0 +1,87 @@
+#! /usr/bin/python
+# Copyright (c) 2016, Kevin Rodgers
+# Released subject to the New BSD License
+# Please see http://en.wikipedia.org/wiki/BSD_licenses
+
+import os
+import sys
+import getopt
+import logging
+from active_mail_filter import amf_config
+from active_mail_filter.rest_client import put_url
+
+logger = logging.getLogger(amf_config.logging.logger)
+
+PROGNAME = os.path.basename(sys.argv[0])
+USAGE = ('Usage: {0} '
+         '-u <username> '
+         '-p <password> '
+         '-e <email> '
+         '-i <imap-server> '
+         '-s <source-folder> '
+         '-t <target-folder>\n'.format(PROGNAME))
+
+HOST = os.getenv('AMF_HTTP_SERVER', amf_config.http_client.server_address)
+PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
+auth = (amf_config.http_server.http_user, amf_config.http_server.http_password)
+
+
+def usage():
+    sys.stderr.write(USAGE)
+    return 2
+
+
+def main():
+    try:
+        options, remainder = getopt.getopt(sys.argv[1:], 'du:p:e:i:s:t:', [])
+    except getopt.GetoptError as err:
+        sys.stderr.write('{0!s}\n'.format(err))
+        sys.exit(usage())
+
+    user = None
+    password = None
+    email = None
+    mail_server = None
+    source = None
+    target = None
+    for opt, arg in options:
+        if opt == '-d':
+            logger.setLevel(logging.DEBUG)
+        elif opt == '-u':
+            user = arg
+        elif opt == '-p':
+            password = arg
+        elif opt == '-e':
+            email = arg
+        elif opt == '-i':
+            mail_server = arg
+        elif opt == '-s':
+            source = arg
+        elif opt == '-t':
+            target = arg
+        else:
+            sys.exit(usage())
+
+    if None in [user, password, email, mail_server, source, target]:
+        sys.exit(usage())
+
+    params = {'user': user,
+              'email': email,
+              'password': password,
+              'mail_server': mail_server,
+              'source': source,
+              'target': target}
+
+    url = 'http://%s:%s/add' % (HOST, PORT)
+    status, data = put_url(url=url, auth=auth, params=params)
+    if status != 201:
+        print 'Error: %s' % str(data['message'])
+        sys.exit(status)
+
+    print data['data']['uuid']
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

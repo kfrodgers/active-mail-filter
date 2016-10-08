@@ -1,0 +1,83 @@
+# Active Mail Filtering
+
+A python module for filtering email. Filters mail from a source folder, typically inbox, to a target folder. The filter first creates a collection of From address already in the target folder. Then for each address it matches item from the same address in the source folder and moves those to the target folder.
+
+## Installation
+This package require a redis server, the location (IP address) of the server, default 127.0.0.1, is stored in the configuration file. 
+
+Install active_mail_filter
+```bash
+git clone https://github.com/krodgers/active_mail_filter.git
+sudo pip install ./active_mail_filter
+```
+
+## Commands
+
+amf_add_user     - Add a new filter rule
+amf_daemon       - The mail filtering daemon, must be run as root
+amf_del_user     - Deletes a filter rule
+amf_list_users   - Lists filter rules
+amf_start_daemon - Start filtering mail
+amf_stop_daemon  - Stop filtering mail
+amf_update_conf  - Create or update the configuration file
+
+## Environment Variables
+
+AMF_CONF_FILE - Configuration file location
+AMF_REDIS_SERVER - IP address or hostname of redis server
+AMF_HTTP_SERVER - IP address or hostname of RESTful API
+AMF_HTTP_PORT - Port of RESTful API
+
+## RESTful API
+
+The API requires basic authentication, the username and password are stored in the configuration file.
+
+#### GET
+http://127.0.0.1:5000/ - Get running threads
+http://127.0.0.1:5000/list - Get list of filter rule UUIDs
+http://127.0.0.1:5000/show/string:UUID - Get filter rule details by UUID
+http://127.0.0.1:5000/folders/string:UUID - List mail folders for user in rule with specified UUID
+http://127.0.0.1:5000/ - List running threads
+http://127.0.0.1:5000/ - List running threads
+
+#### PUT
+http://127.0.0.1:5000/add - Add a new filter rule
+    Parameter are 'user=', 'password=', 'email=', 'mail_server=', 'source=' and 'target='
+http://127.0.0.1:5000/update - Update an existing filter rule
+    Same parameters as above but only specify parameters that need to be updated
+
+#### DELETE
+http://127.0.0.1:5000/show/string:UUID - Delete rule by UUID
+
+#### POST
+http://127.0.0.1:5000/start - Start processing filter rules
+http://127.0.0.1:5000/stop - Stop processing filter rules
+http://127.0.0.1:5000/folders - Get list of folders for user
+    Parameters are 'user=', 'password=' and 'mail_server='
+
+### Todo's
+1. Add SSL support to RESTful API and have it controlled by a configuration file option, default on
+2. Create GUI interface
+3. Comment code
+4. Add thread to look for unseen (new) messages in folder with shorter loop time than full folder scan
+
+### Contribution
+
+Create a fork of the project into your own repository. Make all your necessary changes and create a pull request with a description on what was added or removed and details explaining the changes in lines of code. If approved, project owners will merge it.
+
+### Licensing
+
+Copyright (c) [2016], [Kevin Rodgers]
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+### Support
+
+Please file bugs and issues at the Github issues page.
