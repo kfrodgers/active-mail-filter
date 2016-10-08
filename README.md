@@ -13,52 +13,51 @@ sudo pip install ./active_mail_filter
 
 ## Commands
 
-amf_add_user     - Add a new filter rule
-amf_daemon       - The mail filtering daemon, must be run as root
-amf_del_user     - Deletes a filter rule
-amf_list_users   - Lists filter rules
-amf_start_daemon - Start filtering mail
-amf_stop_daemon  - Stop filtering mail
-amf_update_conf  - Create or update the configuration file
+amf_add_user     - Add a new filter rule <br />
+amf_daemon       - The mail filtering daemon, must be run as root <br />
+amf_del_user     - Deletes a filter rule <br />
+amf_list_users   - Lists filter rules <br />
+amf_start_daemon - Start filtering mail <br />
+amf_stop_daemon  - Stop filtering mail <br />
+amf_update_conf  - Create or update the configuration file <br />
 
 ## Environment Variables
 
-AMF_CONF_FILE - Configuration file location
-AMF_REDIS_SERVER - IP address or hostname of redis server
-AMF_HTTP_SERVER - IP address or hostname of RESTful API
-AMF_HTTP_PORT - Port of RESTful API
+AMF_CONF_FILE - Configuration file location <br />
+AMF_REDIS_SERVER - IP address or hostname of redis server <br />
+AMF_HTTP_SERVER - IP address or hostname of RESTful API server <br />
+AMF_HTTP_PORT - Port of RESTful API server <br />
 
 ## RESTful API
 
 The API requires basic authentication, the username and password are stored in the configuration file.
 
 #### GET
-http://127.0.0.1:5000/ - Get running threads
-http://127.0.0.1:5000/list - Get list of filter rule UUIDs
-http://127.0.0.1:5000/show/string:UUID - Get filter rule details by UUID
-http://127.0.0.1:5000/folders/string:UUID - List mail folders for user in rule with specified UUID
-http://127.0.0.1:5000/ - List running threads
-http://127.0.0.1:5000/ - List running threads
+http://127.0.0.1:5000/ - Get running threads <br />
+http://127.0.0.1:5000/list - Get list of filter rule UUIDs <br />
+http://127.0.0.1:5000/show/string:UUID - Get filter rule details by UUID <br />
+http://127.0.0.1:5000/folders/string:UUID - List mail folders for user in rule with specified UUID <br />
+http://127.0.0.1:5000/ - List running threads <br />
 
 #### PUT
-http://127.0.0.1:5000/add - Add a new filter rule
-    Parameter are 'user=', 'password=', 'email=', 'mail_server=', 'source=' and 'target='
-http://127.0.0.1:5000/update - Update an existing filter rule
-    Same parameters as above but only specify parameters that need to be updated
+http://127.0.0.1:5000/add - Add a new filter rule <br />
+>> *Parameter are 'user=', 'password=', 'email=', 'mail_server=', 'source=' and 'target='* <br />
+http://127.0.0.1:5000/update - Update an existing filter rule <br />
+>> *Same parameters as above but only specify parameters that need to be updated* <br />
 
 #### DELETE
-http://127.0.0.1:5000/show/string:UUID - Delete rule by UUID
+http://127.0.0.1:5000/show/string:UUID - Delete rule by UUID <br />
 
 #### POST
-http://127.0.0.1:5000/start - Start processing filter rules
-http://127.0.0.1:5000/stop - Stop processing filter rules
-http://127.0.0.1:5000/folders - Get list of folders for user
-    Parameters are 'user=', 'password=' and 'mail_server='
+http://127.0.0.1:5000/start - Start processing filter rules <br />
+http://127.0.0.1:5000/stop - Stop processing filter rules <br />
+http://127.0.0.1:5000/folders - Get list of folders for user <br />
+>> *Parameters are 'user=', 'password=' and 'mail_server='* <br />
 
 ### Todo's
 1. Add SSL support to RESTful API and have it controlled by a configuration file option, default on
 2. Create GUI interface
-3. Comment code
+3. Improve/add comments
 4. Add thread to look for unseen (new) messages in folder with shorter loop time than full folder scan
 
 ### Contribution
