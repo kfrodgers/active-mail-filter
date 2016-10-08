@@ -41,9 +41,9 @@ http://127.0.0.1:5000/ - List running threads <br />
 
 #### PUT
 http://127.0.0.1:5000/add - Add a new filter rule <br />
->> *Parameter are 'user=', 'password=', 'email=', 'mail_server=', 'source=' and 'target='* <br />
+*Parameter are 'user=', 'password=', 'email=', 'mail_server=', 'source=' and 'target='* <br />
 http://127.0.0.1:5000/update - Update an existing filter rule <br />
->> *Same parameters as above but only specify parameters that need to be updated* <br />
+*Same parameters as above but only specify parameters that need to be updated* <br />
 
 #### DELETE
 http://127.0.0.1:5000/show/string:UUID - Delete rule by UUID <br />
@@ -52,7 +52,7 @@ http://127.0.0.1:5000/show/string:UUID - Delete rule by UUID <br />
 http://127.0.0.1:5000/start - Start processing filter rules <br />
 http://127.0.0.1:5000/stop - Stop processing filter rules <br />
 http://127.0.0.1:5000/folders - Get list of folders for user <br />
->> *Parameters are 'user=', 'password=' and 'mail_server='* <br />
+*Parameters are 'user=', 'password=' and 'mail_server='* <br />
 
 ### Todo's
 1. Add SSL support to RESTful API and have it controlled by a configuration file option, default on
