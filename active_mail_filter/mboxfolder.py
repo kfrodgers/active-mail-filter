@@ -53,12 +53,16 @@ class MboxFolder(object):
         return folder_name in folders
 
     def list_email_uids(self, folder_name="inbox", pattern="ALL"):
-        self.imap.select(folder_name)
-        result, data = self.imap.uid("SEARCH", None, pattern)
+        uids = []
+        result, data = self.imap.select(folder_name)
         if result == 'OK':
-            uids = data[0].split()
+            result, data = self.imap.uid("SEARCH", None, pattern)
+            if result == 'OK':
+                uids = data[0].split()
+            else:
+                logger.error('Folder search failed, %s', str(data[0]))
         else:
-            uids = []
+            logger.error('%s: Invalid folder, %s', folder_name, str(data[0]))
         logger.debug('search for %s in %s returned %d uids' % (pattern, folder_name, len(uids)))
         return uids
 
@@ -100,21 +104,26 @@ class MboxFolder(object):
         return message_from_string(data[0][1])
 
     def fetch_uid_headers(self, uids):
-        uid_str = ",".join(uids)
-        logger.debug('Fetching uids == { %s }' % uid_str)
-        result, data = self.imap.uid("FETCH", uid_str, "(BODY.PEEK[HEADER.FIELDS (SUBJECT DATE FROM)])")
-        if result != 'OK':
-            raise LookupError('%lu not found' % uid_str)
-
-        if (2 * len(uids)) != len(data):
-            for i in range(0, len(data)):
-                for j in range(0, len(data[i])):
-                    logger.error('data[%d][%d] == %s', i, j, str(data[i][j]))
-            raise LookupError('FETCH wrong count, expected %d got %d' % ((2 * len(uids)), len(data)))
-
         messages = []
-        for i in range(1, len(data), 2):
-            messages.append(message_from_string(data[i-1][1]))
+        index = 0
+        while index < len(uids):
+            uid_str = ",".join(uids[index:index+1024])
+            logger.debug('Fetching uids[%d:%d] == { %s }', index, index+1024, uid_str)
+            result, data = self.imap.uid("FETCH", uid_str, "(BODY.PEEK[HEADER.FIELDS (SUBJECT DATE FROM)])")
+            if result != 'OK':
+                raise LookupError('%lu not found' % uid_str)
+
+            if (2 * len(uids[index:index+1024])) != len(data):
+                for i in range(0, len(data)):
+                    for j in range(0, len(data[i])):
+                        logger.error('data[%d][%d] == %s', i, j, str(data[i][j]))
+                raise LookupError('FETCH wrong count, expected %d got %d' % ((2 * len(uids[index:index+1024])), len(data)))
+
+            for i in range(1, len(data), 2):
+                messages.append(message_from_string(data[i-1][1]))
+
+            index += 1024
+
         return messages
 
     def get_flags(self, uid):
