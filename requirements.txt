@@ -1,7 +1,7 @@
-redis
-pycrypto
 Flask
-Flask-RESTful
 Flask-HTTPAuth
+Flask-RESTful
+pycrypto
+redis
 requests
 SimpleConfigParser
