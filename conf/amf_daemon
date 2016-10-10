@@ -23,18 +23,20 @@ fi
 
 start_amf() {
     log_daemon_msg "Starting Active Mail Filtering Daemon" "amf_daemon" || true
-    if start-stop-daemon --start --quiet --oknodo --retry 30 --pidfile /var/run/amf.pid --exec /usr/local/bin/amf_daemon; then
+    if start-stop-daemon --start --quiet --oknodo --background --exec /usr/local/bin/amf_daemon; then
         log_end_msg 0 || true
     else
         log_end_msg 1 || true
     fi
-    amf_start_daemon
+    sleep 5
+    amf_start_daemon >/dev/null 2>&1
 }
 
 stop_amf() {
     log_daemon_msg "Stopping Active Mail Filtering Daemon" "amf_daemon"
-    amf_stop_daemon
-    if start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile /var/run/amf.pid; then
+    amf_stop_daemon >/dev/null 2>&1
+    sleep 5
+    if start-stop-daemon --stop --quiet --oknodo --name amf_daemon; then
         log_end_msg 0 || true
     else
         log_end_msg 1 || true
@@ -42,7 +44,7 @@ stop_amf() {
 }
 
 status_amf() {
-    status_of_proc -p /var/run/amf.pid /usr/local/bin/amf_daemon amf_daemon
+    status_of_proc /usr/local/bin/amf_daemon amf_daemon
     return $?
 }
 
@@ -50,17 +52,17 @@ export PATH="${PATH:+$PATH:}/usr/sbin:/sbin:/usr/local/bin"
 
 case "$1" in
   start)
-    start_amf()
+    start_amf
     ;;
   stop)
-    stop_amf()
+    stop_amf
     ;;
   restart)
-    start_amf()
-    stop_amf()
+    start_amf
+    stop_amf
     ;;
   status)
-    status_amf()
+    status_amf
     ;;
   *)
     log_action_msg "Usage: /etc/init.d/amf_daemon {start|stop|restart|status}" || true

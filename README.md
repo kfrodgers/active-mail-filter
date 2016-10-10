@@ -11,6 +11,24 @@ git clone https://github.com/krodgers/active_mail_filter.git
 sudo pip install ./active_mail_filter
 ```
 
+## Raspberry Pi Install
+```bash
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install python-pip
+sudo apt-get install python-dev
+sudo apt-get install redis-server
+sudo pip install -U pip
+sudo pip install ./active_mail_filter
+sudo cp ./active_mail_filter/conf/amf_daemon /etc/init.d/
+```
+
+The amf_update_conf command can be used to create a default configuration file (/usr/local/etc/amf.conf). You should edit this file and change the cipher_key, admin password and any other parameters needed to fit your environment. To start the daemon simply enter...
+
+```bash
+sudo /etc/init.d/amf_daemon start
+```
+
 ## Commands
 
 amf_add_user     - Add a new filter rule <br />
