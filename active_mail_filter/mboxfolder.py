@@ -9,6 +9,7 @@ from email import message_from_string
 from active_mail_filter import amf_config
 
 logger = logging.getLogger(amf_config.logging.logger)
+MAX_FETCH_HEADERS = 2048
 
 
 class MboxFolder(object):
@@ -72,6 +73,9 @@ class MboxFolder(object):
         if len(uid_list) > 0:
             msg_list = self.fetch_uid_headers(uid_list)
             for msg in msg_list:
+                if 'From' not in msg:
+                    logger.error('Message missing From attribute %s', str(msg))
+                    continue
                 from_list.add(msg['From'].lower())
                 if max_count is not None and len(from_list) >= max_count:
                     break
@@ -107,22 +111,22 @@ class MboxFolder(object):
         messages = []
         index = 0
         while index < len(uids):
-            uid_str = ",".join(uids[index:index+1024])
-            logger.debug('Fetching uids[%d:%d] == { %s }', index, index+1024, uid_str)
+            count = len(uids[index:index+MAX_FETCH_HEADERS])
+            uid_str = ",".join(uids[index:index+MAX_FETCH_HEADERS])
+            logger.debug('Fetching uids[%d:%d] == { %s }', index, index+MAX_FETCH_HEADERS, uid_str)
             result, data = self.imap.uid("FETCH", uid_str, "(BODY.PEEK[HEADER.FIELDS (SUBJECT DATE FROM)])")
             if result != 'OK':
                 raise LookupError('%lu not found' % uid_str)
 
-            if (2 * len(uids[index:index+1024])) != len(data):
+            if (2 * count) != len(data):
                 for i in range(0, len(data)):
-                    for j in range(0, len(data[i])):
-                        logger.error('data[%d][%d] == %s', i, j, str(data[i][j]))
-                raise LookupError('FETCH wrong count, expected %d got %d' % ((2 * len(uids[index:index+1024])), len(data)))
+                    logger.error('data[%d][0] == %s', i, str(data[i][0]))
+                raise LookupError('FETCH wrong count, expected %d got %d' % ((2 * count), len(data)))
 
             for i in range(1, len(data), 2):
                 messages.append(message_from_string(data[i-1][1]))
 
-            index += 1024
+            index += count
 
         return messages
 

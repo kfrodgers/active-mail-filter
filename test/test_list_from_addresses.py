@@ -9,18 +9,19 @@ from active_mail_filter import amf_config
 from active_mail_filter.mboxfolder import MboxFolder
 
 logger = logging.getLogger(amf_config.logging.logger)
-stream = logging.StreamHandler(stream=sys.stdout)
-stream.setLevel(logging.DEBUG)
-logger.addHandler(stream)
 logger.setLevel(logging.DEBUG)
 
 def main():
-    host = 'imap.gmail.com'
-    username = 'user'
-    password = 'pwd'
+    host = 'imap.mail.yahoo.com'
+    username = 'user@yahoo.com'
+    password = 'password'
+    folder = 'inbox'
     mbox = MboxFolder(host, username, password)
-    uids = mbox.list_from_addresses('inbox')
-    print str(uids)
+    uids = mbox.list_from_addresses(folder)
+    start = 0
+    while start < len(uids):
+        print str(uids[start:start+10])
+        start += 10
     print str(len(uids))
 
 
