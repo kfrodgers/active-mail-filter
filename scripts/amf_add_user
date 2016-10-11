@@ -8,7 +8,7 @@ import sys
 import getopt
 import logging
 from active_mail_filter import amf_config
-from active_mail_filter.rest_client import put_url
+from active_mail_filter.rest_client import post_url, put_url
 
 logger = logging.getLogger(amf_config.logging.logger)
 
@@ -30,6 +30,11 @@ def usage():
     sys.stderr.write(USAGE)
     return 2
 
+
+def print_folders(folders):
+    print 'Valid folders are...'
+    for f in sorted(folders):
+        print '\t' + f
 
 def main():
     try:
@@ -71,6 +76,24 @@ def main():
               'mail_server': mail_server,
               'source': source,
               'target': target}
+
+    url = 'http://%s:%s/folders' % (HOST, PORT)
+    status, data = post_url(url=url, auth=auth, params=params)
+    if status != 201:
+        print 'Error: %s' % str(data['message'])
+        sys.exit(status)
+
+    # Special checks because inbox folder name is case insensitive
+    folders = data['data'][user]
+    if source.lower() != 'inbox' and source not in folders:
+        print '%s: Invalid source folder' % source
+        print_folders(folders)
+        sys.exit(1)
+
+    if target not in folders:
+        print '%s: Invalid target folder' % target
+        print_folders(folders)
+        sys.exit(1)
 
     url = 'http://%s:%s/add' % (HOST, PORT)
     status, data = put_url(url=url, auth=auth, params=params)
