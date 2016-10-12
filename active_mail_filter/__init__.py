@@ -63,9 +63,11 @@ if not amf_config.has_option('logging', 'log_file'):
     amf_config.set('logging', 'log_file', value='/var/log/active_mail_filter.log')
 
 # create logger
-format = '%(created)f - %(levelname)s - %(filename)s - line %(lineno)d - %(message)s'
+format = '%(asctime)s - %(levelname)s - %(filename)s - line %(lineno)d - %(message)s'
 if amf_config.logging.log_level in ['DEBUG', 'INFO', 'WARNING', 'ERROR']:
     level = getattr(logging, amf_config.logging.log_level)
+else:
+    level = logging.INFO
 
 try:
     logging.basicConfig(filename=amf_config.logging.log_file, format=format, level=level)
