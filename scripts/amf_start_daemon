@@ -15,10 +15,6 @@ logger = logging.getLogger(amf_config.logging.logger)
 PROGNAME = os.path.basename(sys.argv[0])
 USAGE = ('Usage: {0}\n'.format(PROGNAME))
 
-HOST = os.getenv('AMF_HTTP_SERVER', amf_config.http_client.server_address)
-PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
-auth = (amf_config.http_server.http_user, amf_config.http_server.http_password)
-
 
 def usage():
     sys.stderr.write(USAGE)
@@ -38,13 +34,11 @@ def main():
         else:
             sys.exit(usage())
 
-    url = 'http://%s:%s/start' % (HOST, PORT)
-    status, data = post_url(url=url, auth=auth, params={})
+    status, data = post_url(url_route='/start', params={})
     if status != 201:
         print 'Error: %s' % str(data['message'])
 
-    url = 'http://%s:%s/' % (HOST, PORT)
-    status, data = get_url(url=url, auth=auth)
+    status, data = get_url(url_route='/')
     if status != 200:
         print 'Error: %s' % str(data['message'])
     else:

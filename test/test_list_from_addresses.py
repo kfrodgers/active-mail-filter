@@ -19,10 +19,11 @@ def main():
     mbox = MboxFolder(host, username, password)
     uids = mbox.list_from_addresses(folder)
     start = 0
+    batch_count = 5
     while start < len(uids):
-        print str(uids[start:start+10])
-        start += 10
-    print str(len(uids))
+        print str(uids[start:start+batch_count])
+        start += batch_count
+    print 'Total = %d' % len(uids)
 
 
 if __name__ == '__main__':

@@ -18,10 +18,6 @@ USAGE = ('Usage: {0} '
          '[-s <source-folder>] '
          '[-t <target-folder>]\n'.format(PROGNAME))
 
-HOST = os.getenv('AMF_HTTP_SERVER', amf_config.http_client.server_address)
-PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
-auth = (amf_config.http_server.http_user, amf_config.http_server.http_password)
-
 
 def usage():
     sys.stderr.write(USAGE)
@@ -47,8 +43,8 @@ def main():
     if uuid is None:
         sys.exit(usage())
 
-    url = 'http://%s:%s/show/%s' % (HOST, PORT, uuid)
-    status, data = delete_url(url=url, auth=auth)
+    url_route = '/show/%s' % uuid
+    status, data = delete_url(url_route=url_route)
     if status != 204:
         print 'Error: %s' % str(data['message'])
 

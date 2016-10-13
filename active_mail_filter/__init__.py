@@ -50,8 +50,14 @@ if not amf_config.has_option('http_server', 'listen_port'):
 if not amf_config.has_option('http_server', 'http_user'):
     amf_config.set('http_server', 'http_user', value='admin')
 
-if not amf_config.has_option('http_server', 'http_password'):
-    amf_config.set('http_server', 'http_password', value='admin')
+if not amf_config.has_option('http_server', 'use_ssl'):
+    amf_config.set('http_server', 'use_ssl', value='False')
+
+if not amf_config.has_option('http_server', 'cert_file'):
+    amf_config.set('http_server', 'cert_file', value='')
+
+if not amf_config.has_option('http_server', 'pkey_file'):
+    amf_config.set('http_server', 'pkey_file', value='')
 
 if not amf_config.has_option('logging', 'log_level'):
     amf_config.set('logging', 'log_level', value='INFO')
@@ -64,7 +70,8 @@ if not amf_config.has_option('logging', 'log_file'):
 
 # create logger
 format = '%(asctime)s - %(levelname)s - %(filename)s - line %(lineno)d - %(message)s'
-if amf_config.logging.log_level in ['DEBUG', 'INFO', 'WARNING', 'ERROR']:
+if hasattr(logging, amf_config.logging.log_level) and \
+                amf_config.logging.log_level in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL']:
     level = getattr(logging, amf_config.logging.log_level)
 else:
     level = logging.INFO

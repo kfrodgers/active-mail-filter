@@ -27,6 +27,8 @@ userdb = UserRecords(host=HOST,
 app = Flask(__name__)
 api = Api(app)
 auth = HTTPBasicAuth()
+ssl_context = (amf_config.http_server.cert_file, amf_config.http_server.pkey_file)
+
 
 STOP_EVENT = threading.Event()
 ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
@@ -121,14 +123,17 @@ class ServerStatus(Resource):
     decorators = get_decarators()
 
     def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('debug')
         super(ServerStatus, self).__init__()
 
     def get(self):
+        self.counters['get'] += 1
         return {'data': list_all_threads()}
 
     def post(self):
+        self.counters['post'] += 1
         args = self.parser.parse_args()
         settings = {}
         try:
@@ -148,7 +153,12 @@ class ServerStatus(Resource):
 class ServerStart(Resource):
     decorators = get_decarators()
 
+    def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
+        super(ServerStart, self).__init__()
+
     def post(self):
+        self.counters['post'] += 1
         global STOP_EVENT
         thread_list = list_all_threads()
         if 'filter_daemon' in thread_list:
@@ -164,7 +174,12 @@ class ServerStart(Resource):
 class ServerStop(Resource):
     decorators = get_decarators()
 
+    def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
+        super(ServerStop, self).__init__()
+
     def post(self):
+        self.counters['post'] += 1
         global STOP_EVENT
         thread_list = list_all_threads()
         if 'filter_daemon' not in thread_list:
@@ -177,7 +192,12 @@ class ServerStop(Resource):
 class RecordList(Resource):
     decorators = get_decarators()
 
+    def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
+        super(RecordList, self).__init__()
+
     def get(self):
+        self.counters['get'] += 1
         users = userdb.get_all_users()
         name_uuid = {}
         for u in users:
@@ -190,7 +210,12 @@ class RecordList(Resource):
 class RecordInfo(Resource):
     decorators = get_decarators()
 
+    def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
+        super(RecordInfo, self).__init__()
+
     def get(self, uuid):
+        self.counters['get'] += 1
         try:
             user_record = userdb.get_user_by_uuid(uuid)
             del user_record[PASSWORD]
@@ -202,6 +227,7 @@ class RecordInfo(Resource):
         return {'data': user_record}
 
     def delete(self, uuid):
+        self.counters['delete'] += 1
         try:
             user_record = userdb.get_user_by_uuid(uuid)
             logger.debug('delete %s/%s', user_record[USER], user_record[UUID])
@@ -217,12 +243,14 @@ class RecordAdd(Resource):
     decorators = get_decarators()
 
     def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
         self.parser = reqparse.RequestParser()
         for arg in ARGUMENTS:
             self.parser.add_argument(arg)
         super(RecordAdd, self).__init__()
 
     def put(self):
+        self.counters['put'] += 1
         args = self.parser.parse_args()
         for key in [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]:
             if args[key] is None:
@@ -246,12 +274,14 @@ class RecordUpdate(Resource):
     decorators = get_decarators()
 
     def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
         self.parser = reqparse.RequestParser()
         for arg in ARGUMENTS:
             self.parser.add_argument(arg)
         super(RecordUpdate, self).__init__()
 
     def put(self, uuid):
+        self.counters['put'] += 1
         args = self.parser.parse_args()
         try:
             user_record = userdb.get_user_by_uuid(uuid)
@@ -273,12 +303,14 @@ class FolderList(Resource):
     decorators = get_decarators()
 
     def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
         self.parser = reqparse.RequestParser()
         for arg in ARGUMENTS:
             self.parser.add_argument(arg)
         super(FolderList, self).__init__()
 
     def get(self, uuid):
+        self.counters['get'] += 1
         try:
             user_record = userdb.get_user_by_uuid(uuid)
             mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
@@ -292,6 +324,7 @@ class FolderList(Resource):
         return {'data': {uuid: folder_list}}, 201
 
     def post(self):
+        self.counters['post'] += 1
         args = self.parser.parse_args()
         for key in [USER, PASSWORD, MAILSERVER]:
             if args[key] is None:
@@ -319,5 +352,9 @@ if __name__ == '__main__':
     api.add_resource(ServerStart, '/start')
     api.add_resource(ServerStop, '/stop')
 
-    app.run(host=amf_config.http_server.listen_address,
-            port=amf_config.getint('http_server', 'listen_port'))
+    if amf_config.getboolean('http_server', 'use_ssl'):
+        app.run(host=amf_config.http_server.listen_address, ssl_context=ssl_context,
+                port=amf_config.getint('http_server', 'listen_port'))
+    else:
+        app.run(host=amf_config.http_server.listen_address,
+                port=amf_config.getint('http_server', 'listen_port'))

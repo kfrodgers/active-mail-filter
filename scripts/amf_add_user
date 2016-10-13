@@ -21,10 +21,6 @@ USAGE = ('Usage: {0} '
          '-s <source-folder> '
          '-t <target-folder>\n'.format(PROGNAME))
 
-HOST = os.getenv('AMF_HTTP_SERVER', amf_config.http_client.server_address)
-PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
-auth = (amf_config.http_server.http_user, amf_config.http_server.http_password)
-
 
 def usage():
     sys.stderr.write(USAGE)
@@ -35,6 +31,7 @@ def print_folders(folders):
     print 'Valid folders are...'
     for f in sorted(folders):
         print '\t' + f
+
 
 def main():
     try:
@@ -77,8 +74,7 @@ def main():
               'source': source,
               'target': target}
 
-    url = 'http://%s:%s/folders' % (HOST, PORT)
-    status, data = post_url(url=url, auth=auth, params=params)
+    status, data = post_url(url_route='/folders', params=params)
     if status != 201:
         print 'Error: %s' % str(data['message'])
         sys.exit(status)
@@ -90,13 +86,13 @@ def main():
         print_folders(folders)
         sys.exit(1)
 
-    if target not in folders:
+    # can't use inbox as target folder
+    if target.lower() == 'inbox' or target not in folders:
         print '%s: Invalid target folder' % target
         print_folders(folders)
         sys.exit(1)
 
-    url = 'http://%s:%s/add' % (HOST, PORT)
-    status, data = put_url(url=url, auth=auth, params=params)
+    status, data = put_url(url_route='/add', params=params)
     if status != 201:
         print 'Error: %s' % str(data['message'])
         sys.exit(status)

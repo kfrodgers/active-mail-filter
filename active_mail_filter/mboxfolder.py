@@ -114,16 +114,16 @@ class MboxFolder(object):
             count = len(uids[index:index+MAX_FETCH_HEADERS])
             uid_str = ",".join(uids[index:index+MAX_FETCH_HEADERS])
             logger.debug('Fetching uids[%d:%d] == { %s }', index, index+MAX_FETCH_HEADERS, uid_str)
-            result, data = self.imap.uid("FETCH", uid_str, "(BODY.PEEK[HEADER.FIELDS (SUBJECT DATE FROM)])")
+            result, data = self.imap.uid("FETCH", uid_str, "(BODY.PEEK[HEADER.FIELDS (SUBJECT DATE TO FROM)])")
             if result != 'OK':
                 raise LookupError('%lu not found' % uid_str)
 
-            if (2 * count) != len(data):
+            if (2 * count) > len(data):
                 for i in range(0, len(data)):
-                    logger.error('data[%d][0] == %s', i, str(data[i][0]))
-                raise LookupError('FETCH wrong count, expected %d got %d' % ((2 * count), len(data)))
+                    logger.error('data[%d] type=%s value=%s', i, str(type(data[i])), str(data[i]))
+                raise LookupError('FETCH bad count, expected %d got %d' % ((2 * count), len(data)))
 
-            for i in range(1, len(data), 2):
+            for i in range(1, (2 * count), 2):
                 messages.append(message_from_string(data[i-1][1]))
 
             index += count

@@ -6,7 +6,6 @@
 import os
 import sys
 import getopt
-from active_mail_filter import amf_config
 from active_mail_filter.rest_client import get_url
 
 PROGNAME = os.path.basename(sys.argv[0])
@@ -14,9 +13,6 @@ USAGE = ('Usage: {0} '
          '[-u <username>]\n'.format(PROGNAME))
 
 FORMAT = '%-20s %-20s %-15s %-10s %-10s'
-HOST = os.getenv('AMF_HTTP_SERVER', amf_config.http_client.server_address)
-PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
-auth = (amf_config.http_server.http_user, amf_config.http_server.http_password)
 
 
 def usage():
@@ -38,8 +34,7 @@ def main():
         else:
             sys.exit(usage())
 
-    url = 'http://%s:%s/list' % (HOST, PORT)
-    status, data = get_url(url=url, auth=auth)
+    status, data = get_url(url_route='/list')
     if status != 200:
         if 'message' in data:
             print 'Error: ' + str(data['message'])
@@ -53,8 +48,8 @@ def main():
         if user is not None and user != name:
             continue
         for uuid in users[name]:
-            url = 'http://%s:%s/show/%s' % (HOST, PORT, uuid)
-            statud, data = get_url(url=url, auth=auth)
+            url_route = '/show/%s' % uuid
+            statud, data = get_url(url_route=url_route)
             if status != 200:
                 print str(data)
                 sys.exit(status)
