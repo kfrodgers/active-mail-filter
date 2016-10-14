@@ -49,7 +49,7 @@ def main():
             continue
         for uuid in users[name]:
             url_route = '/show/%s' % uuid
-            statud, data = get_url(url_route=url_route)
+            status, data = get_url(url_route=url_route)
             if status != 200:
                 print str(data)
                 sys.exit(status)

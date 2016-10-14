@@ -21,21 +21,17 @@ setup(
     author_email='kevin@rodgersworld.com',
     url='https://github.com/kfrodgers/active_mail_filter',
     license='Apache 2.0',
-
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: System Administrators',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2.7',
-    ],
-
+    classifiers=['Development Status :: 4 - Beta',
+                 'Intended Audience :: System Administrators',
+                 'Intended Audience :: Developers',
+                 'Topic :: Software Development :: Libraries :: Python Modules',
+                 'License :: OSI Approved :: Apache Software License',
+                 'Programming Language :: Python :: 2.7'],
     keywords='filter, mail, imap',
     packages=find_packages(exclude=['test*']),
-    scripts=['scripts/amf_add_user', 'scripts/amf_del_user', 'scripts/amf_list_users',
-             'scripts/amf_daemon', 'scripts/amf_start_daemon', 'scripts/amf_stop_daemon',
-             'scripts/amf_update_conf'],
+    scripts=['scripts/amf_add_rule', 'scripts/amf_daemon', 'scripts/amf_del_rule',
+             'scripts/amf_list_rules', 'scripts/amf_mod_rule', 'scripts/amf_start_daemon',
+             'scripts/amf_stop_daemon', 'scripts/amf_update_conf'],
     install_requires=install_requires,
     data_files=[('/usr/local/etc/', ['conf/amf.conf'])]
 )

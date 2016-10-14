@@ -29,7 +29,6 @@ api = Api(app)
 auth = HTTPBasicAuth()
 ssl_context = (amf_config.http_server.cert_file, amf_config.http_server.pkey_file)
 
-
 STOP_EVENT = threading.Event()
 ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
 
@@ -254,8 +253,8 @@ class RecordAdd(Resource):
         args = self.parser.parse_args()
         for key in [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]:
             if args[key] is None:
-                logger.error('Missing %s keyword', key)
-                abort(400, message='Missing {} keyword'.format(key))
+                logger.error('Missing [%s] keyword', key)
+                abort(400, message='Missing [{}] keyword'.format(key))
 
         try:
             uuid = userdb.add_user(user=args[USER], email=args[EMAIL], password=args[PASSWORD],

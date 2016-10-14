@@ -100,12 +100,17 @@ class MboxFolder(object):
             found = from_string.split(' ')[0]
         return found
 
-    def fetch_uid(self, uid):
+    def fetch_uid_message(self, uid):
         result, data = self.imap.uid("FETCH", uid, "(BODY.PEEK[])")
         if result != 'OK':
             raise LookupError('%lu not found' % uid)
 
-        return message_from_string(data[0][1])
+        try:
+            msg = message_from_string(data[0][1].decode(encoding='UTF-8'))
+        except UnicodeEncodeError as e:
+            msg = message_from_string(data[0][1].decode(encoding='ascii', errors='ignore'))
+
+        return msg
 
     def fetch_uid_headers(self, uids):
         messages = []

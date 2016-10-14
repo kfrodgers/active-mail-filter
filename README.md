@@ -31,10 +31,11 @@ sudo /etc/init.d/amf_daemon start
 
 ## Commands
 
-amf_add_user     - Add a new filter rule <br />
+amf_add_rule     - Add a new filter rule <br />
 amf_daemon       - The mail filtering daemon, must be run as root <br />
-amf_del_user     - Deletes a filter rule <br />
-amf_list_users   - Lists filter rules <br />
+amf_del_rule     - Deletes a filter rule <br />
+amf_list_rules   - Lists filter rules <br />
+amf_mod_rule     - Modifies a filter rule <br />
 amf_start_daemon - Start filtering mail <br />
 amf_stop_daemon  - Stop filtering mail <br />
 amf_update_conf  - Create or update the configuration file <br />
