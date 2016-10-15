@@ -50,6 +50,9 @@ if not amf_config.has_option('http_server', 'listen_port'):
 if not amf_config.has_option('http_server', 'http_user'):
     amf_config.set('http_server', 'http_user', value='admin')
 
+if not amf_config.has_option('http_server', 'http_password'):
+    amf_config.set('http_server', 'http_password', value='admin')
+
 if not amf_config.has_option('http_server', 'use_ssl'):
     amf_config.set('http_server', 'use_ssl', value='False')
 

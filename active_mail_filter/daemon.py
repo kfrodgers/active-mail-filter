@@ -1,9 +1,9 @@
-#! /usr/bin/python
 # Copyright (c) 2016, Kevin Rodgers
 # Released subject to the New BSD License
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
 import os
+import sys
 import logging
 import threading
 from flask import Flask, make_response, jsonify
@@ -341,7 +341,11 @@ class FolderList(Resource):
 
         return {'data': {args[USER]: folder_list}}, 201
 
-if __name__ == '__main__':
+
+def run_daemon():
+    if '-v' in sys.argv:
+        logger.setLevel(logging.DEBUG)
+
     api.add_resource(RecordInfo, '/show/<string:uuid>')
     api.add_resource(RecordList, '/list')
     api.add_resource(RecordAdd, '/add')

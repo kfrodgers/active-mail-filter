@@ -29,9 +29,17 @@ setup(
                  'Programming Language :: Python :: 2.7'],
     keywords='filter, mail, imap',
     packages=find_packages(exclude=['test*']),
-    scripts=['scripts/amf_add_rule', 'scripts/amf_daemon', 'scripts/amf_del_rule',
-             'scripts/amf_list_rules', 'scripts/amf_mod_rule', 'scripts/amf_start_daemon',
-             'scripts/amf_stop_daemon', 'scripts/amf_update_conf'],
+    scripts=[],
+    entry_points={
+        'console_scripts': ['amf_add_rule = active_mail_filter.commands:add_rule',
+                            'amf_daemon = active_mail_filter.daemon:run_daemon',
+                            'amf_del_rule = active_mail_filter.commands:delete_rule',
+                            'amf_list_rules = active_mail_filter.commands:list_rules',
+                            'amf_mod_rule = active_mail_filter.commands:modify_rule',
+                            'amf_start_daemon = active_mail_filter.commands:start_daemon',
+                            'amf_stop_daemon = active_mail_filter.commands:stop_daemon',
+                            'amf_update_conf = active_mail_filter.commands:update_config']
+    },
     install_requires=install_requires,
     data_files=[('/usr/local/etc/', ['conf/amf.conf'])]
 )
