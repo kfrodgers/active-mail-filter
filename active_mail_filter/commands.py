@@ -247,8 +247,6 @@ def modify_rule():
     for key in params.keys():
         if key in old_params and params[key] is None:
             params[key] = old_params[key]
-        if params[key] is None:
-            del params[key]
 
     check_folders(params['user'], params['password'], params['mail_server'],
                   params['source'], params['target'])
