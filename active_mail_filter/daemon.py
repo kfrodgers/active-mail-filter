@@ -4,7 +4,9 @@
 
 import os
 import sys
+import getopt
 import logging
+import signal
 import threading
 from flask import Flask, make_response, jsonify
 from flask_restful import Resource, Api, abort, reqparse
@@ -108,6 +110,30 @@ def run_mail_daemon():
     logger.info('filter_daemon: exiting')
 
 
+def start_daemon_thread():
+    global STOP_EVENT
+    thread_list = list_all_threads()
+    if 'filter_daemon' in thread_list:
+        raise DaemonAlreadyRunning()
+
+    logger.info('Starting filter process')
+    STOP_EVENT.clear()
+    th = threading.Thread(name='filter_daemon', target=run_mail_daemon)
+    th.setDaemon(True)
+    th.start()
+    return th
+
+
+def stop_daemon_thread():
+    global STOP_EVENT
+    thread_list = list_all_threads()
+    if 'filter_daemon' not in thread_list:
+        raise DaemonAlreadyStopped()
+
+    logger.info('Stopping filter process')
+    STOP_EVENT.set()
+
+
 def list_all_threads():
     current_thread = threading.currentThread()
     thread_dict = {}
@@ -116,6 +142,31 @@ def list_all_threads():
             continue
         thread_dict[th.getName()] = str(th.isAlive())
     return thread_dict
+
+
+def sigterm_handler(signum, frame):
+    logger.info('Caught %d signal, shutting down', signum)
+    if frame is not None and hasattr(frame, 'f_code'):
+        logger.debug('Frame == %s', str(frame.f_code))
+    try:
+        stop_daemon_thread()
+        logger.info('Stopping worker threads')
+    except DaemonAlreadyStopped:
+        pass
+
+    for th in threading.enumerate():
+        if 'filter_daemon' == th.getName():
+            logger.info('Waiting for filter process to exit')
+            th.join()
+    sys.exit(0)
+
+
+class DaemonAlreadyRunning(Exception):
+    pass
+
+
+class DaemonAlreadyStopped(Exception):
+    pass
 
 
 class ServerStatus(Resource):
@@ -158,15 +209,11 @@ class ServerStart(Resource):
 
     def post(self):
         self.counters['post'] += 1
-        global STOP_EVENT
-        thread_list = list_all_threads()
-        if 'filter_daemon' in thread_list:
+        try:
+            start_daemon_thread()
+        except DaemonAlreadyRunning:
             abort(400, message='server already running')
 
-        STOP_EVENT.clear()
-        th = threading.Thread(name='filter_daemon', target=run_mail_daemon)
-        th.setDaemon(True)
-        th.start()
         return {'data': list_all_threads()}, 201
 
 
@@ -179,12 +226,11 @@ class ServerStop(Resource):
 
     def post(self):
         self.counters['post'] += 1
-        global STOP_EVENT
-        thread_list = list_all_threads()
-        if 'filter_daemon' not in thread_list:
+        try:
+            stop_daemon_thread()
+        except DaemonAlreadyStopped:
             abort(400, message='server already stopped')
 
-        STOP_EVENT.set()
         return {'data': list_all_threads()}, 201
 
 
@@ -343,8 +389,21 @@ class FolderList(Resource):
 
 
 def run_daemon():
-    if '-v' in sys.argv:
-        logger.setLevel(logging.DEBUG)
+    try:
+        options, remainder = getopt.getopt(sys.argv[1:], 'vs', [])
+    except getopt.GetoptError as err:
+        sys.stderr.write('%s\n' % err)
+        sys.exit(1)
+
+    for opt, arg in options:
+        if opt == '-v':
+            logger.setLevel(logging.DEBUG)
+        elif opt == '-s':
+            start_daemon_thread()
+        else:
+            sys.exit(1)
+
+    signal.signal(signal.SIGTERM, sigterm_handler)
 
     api.add_resource(RecordInfo, '/show/<string:uuid>')
     api.add_resource(RecordList, '/list')
