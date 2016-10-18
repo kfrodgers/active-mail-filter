@@ -63,7 +63,7 @@ sudo launchctl unload  /System/Library/LaunchDaemons/org.mail.filter.amf-daemon.
 ## Linux Systemd Install
 ```bash
 sudo pip install ./active_mail_filter
-sudo cp ./active_mail_filter/conf/amf_daemon.systemd /usr/lib/systemd/system/amf_daemon
+sudo cp ./active_mail_filter/conf/amf_daemon.service /usr/lib/systemd/system/
 ```
 
 To start the daemon simply enter...
