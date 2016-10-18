@@ -11,6 +11,13 @@ git clone https://github.com/krodgers/active_mail_filter.git
 sudo pip install ./active_mail_filter
 ```
 
+### Configuration File (amf_update_conf)
+The amf_update_conf command can be used to create a default configuration file (/usr/local/etc/amf.conf). You should edit this file and change the cipher_key, admin password and any other parameters needed to fit your environment.
+
+```bash
+Usage: amf_update_conf [-v] [-i <http-client-address> ] [-u <http-user>:<http-password>] [-r <redis-server>] [-k <redis-key>] [-l <log-level>] [-c <cipher-key>
+```
+
 ## Raspberry Pi Install
 ```bash
 sudo apt-get update
@@ -20,13 +27,56 @@ sudo apt-get install python-dev
 sudo apt-get install redis-server
 sudo pip install -U pip
 sudo pip install ./active_mail_filter
-sudo cp ./active_mail_filter/conf/amf_daemon /etc/init.d/
+sudo cp ./active_mail_filter/conf/amf_daemon.init /etc/init.d/amf_daemon
 ```
 
 The amf_update_conf command can be used to create a default configuration file (/usr/local/etc/amf.conf). You should edit this file and change the cipher_key, admin password and any other parameters needed to fit your environment. To start the daemon simply enter...
 
 ```bash
 sudo /etc/init.d/amf_daemon start
+```
+
+To stop amf_daemon run...
+
+```bash
+sudo /etc/init.d/amf_daemon stop
+```
+
+## Mac OSX Install
+```bash
+sudo pip install ./active_mail_filter
+sudo cp ./active_mail_filter/conf/org.mail.filter.amf-daemon.plist /System/Library/LaunchDaemons/
+```
+
+To start the daemon simply enter...
+
+```bash
+sudo launchctl load -w /System/Library/LaunchDaemons/org.mail.filter.amf-daemon.plist
+```
+
+To stop amf_daemon run...
+
+```bash
+sudo launchctl unload  /System/Library/LaunchDaemons/org.mail.filter.amf-daemon.plist
+```
+
+## Linux Systemd Install
+```bash
+sudo pip install ./active_mail_filter
+sudo cp ./active_mail_filter/conf/amf_daemon.systemd /usr/lib/systemd/system/amf_daemon
+```
+
+To start the daemon simply enter...
+
+```bash
+sudo systemctl enable amf_daemon
+sudo systemctl start amf_daemon
+```
+
+To stop amf_daemon run...
+
+```bash
+sudo systemctl stop amf_daemon
 ```
 
 ## Commands

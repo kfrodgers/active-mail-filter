@@ -56,14 +56,17 @@ def get_decarators():
     return decarators
 
 
-def worker_thread(records):
-    for rec in records:
-        logger.debug('%s: moving %s to %s on %s', rec[USER], rec[SOURCE], rec[TARGET], rec[MAILSERVER])
-        imap = ImapUser(rec[MAILSERVER], rec[USER], rec[PASSWORD],
-                        to_folder=rec[TARGET], from_folder=rec[SOURCE])
-        cnt, uids = imap.filter_mail()
+def worker_thread(rule_records):
+    for rule in rule_records:
+        if STOP_EVENT.is_set():
+            break
+
+        logger.debug('%s: moving %s to %s on %s', rule[USER], rule[SOURCE], rule[TARGET], rule[MAILSERVER])
+        imap = ImapUser(rule[MAILSERVER], rule[USER], rule[PASSWORD],
+                        to_folder=rule[TARGET], from_folder=rule[SOURCE])
+        cnt, moved_uids = imap.filter_mail()
         if cnt > 0:
-            logger.info('%s: moved %d messages %s', threading.currentThread().getName(), cnt, str(uids))
+            logger.info('%s: moved %d messages %s', threading.currentThread().getName(), cnt, str(moved_uids))
         del imap
 
 
@@ -98,7 +101,6 @@ def run_all_workers(users_jobs):
 
 
 def run_mail_daemon():
-    global STOP_EVENT
     while not STOP_EVENT.is_set():
         users = userdb.get_all_users()
         if len(users) > 0:
@@ -111,7 +113,6 @@ def run_mail_daemon():
 
 
 def start_daemon_thread():
-    global STOP_EVENT
     thread_list = list_all_threads()
     if 'filter_daemon' in thread_list:
         raise DaemonAlreadyRunning()
@@ -125,7 +126,6 @@ def start_daemon_thread():
 
 
 def stop_daemon_thread():
-    global STOP_EVENT
     thread_list = list_all_threads()
     if 'filter_daemon' not in thread_list:
         raise DaemonAlreadyStopped()
@@ -145,7 +145,7 @@ def list_all_threads():
 
 
 def sigterm_handler(signum, frame):
-    logger.info('Caught %d signal, shutting down', signum)
+    logger.info('Caught signal %d, shutting down', signum)
     if frame is not None and hasattr(frame, 'f_code'):
         logger.debug('Frame == %s', str(frame.f_code))
     try:

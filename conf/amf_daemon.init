@@ -33,7 +33,7 @@ start_amf() {
 
 stop_amf() {
     log_daemon_msg "Stopping Active Mail Filtering Daemon" "amf_daemon"
-    if start-stop-daemon --stop --quiet --oknodo --name amf_daemon; then
+    if start-stop-daemon --stop --retry 30 --quiet --oknodo --name amf_daemon; then
         log_end_msg 0 || true
     else
         log_end_msg 1 || true
@@ -67,3 +67,4 @@ case "$1" in
 esac
 
 exit 0
+

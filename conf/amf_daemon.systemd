@@ -1,0 +1,10 @@
+[Unit]
+Description=Active Mail Filer Daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/amf_daemon -s
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
