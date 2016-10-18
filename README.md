@@ -30,7 +30,7 @@ sudo pip install ./active_mail_filter
 sudo cp ./active_mail_filter/conf/amf_daemon.init /etc/init.d/amf_daemon
 ```
 
-The amf_update_conf command can be used to create a default configuration file (/usr/local/etc/amf.conf). You should edit this file and change the cipher_key, admin password and any other parameters needed to fit your environment. To start the daemon simply enter...
+To start the daemon simply enter...
 
 ```bash
 sudo /etc/init.d/amf_daemon start
