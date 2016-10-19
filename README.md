@@ -15,7 +15,8 @@ sudo pip install ./active_mail_filter
 The amf_update_conf command can be used to create a default configuration file (/usr/local/etc/amf.conf). You should edit this file and change the cipher_key, admin password and any other parameters needed to fit your environment.
 
 ```bash
-Usage: amf_update_conf [-v] [-i <http-client-address> ] [-u <http-user>:<http-password>] [-r <redis-server>] [-k <redis-key>] [-l <log-level>] [-c <cipher-key>
+Usage: amf_update_conf [-v] [-i <http-client-address> ] [-u <http-user>:<http-password>]
+                       [-r <redis-server>] [-k <redis-key>] [-l <log-level>] [-c <cipher-key>]
 ```
 
 ## Raspberry Pi Install
@@ -27,19 +28,21 @@ sudo apt-get install python-dev
 sudo apt-get install redis-server
 sudo pip install -U pip
 sudo pip install ./active_mail_filter
-sudo cp ./active_mail_filter/conf/amf_daemon.init /etc/init.d/amf_daemon
+sudo cp ./active_mail_filter/conf/amf_daemon /etc/init.d/
+sudo chmod +x /etc/init.d/amf_daemon
 ```
 
 To start the daemon simply enter...
 
 ```bash
-sudo /etc/init.d/amf_daemon start
+sudo update-rc.d amf_daemon defaults
+sudo service amf_daemon start
 ```
 
 To stop amf_daemon run...
 
 ```bash
-sudo /etc/init.d/amf_daemon stop
+sudo service amf_daemon stop
 ```
 
 ## Mac OSX Install
