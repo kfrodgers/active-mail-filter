@@ -18,9 +18,9 @@ from active_mail_filter.user_records import UserRecords
 from active_mail_filter.stoppable_thread import StoppableThread
 from active_mail_filter.user_records import UUID, USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET
 
-HOST = os.getenv('AMF_REDIS_SERVER', amf_config.redis_server.redis_server)
+HOST = os.getenv('AMF_REDIS_SERVER', amf_config.redis_server.redis_server_address)
 
-logger = logging.getLogger(amf_config.logging.logger)
+logger = logging.getLogger(amf_config.general.logger)
 
 userdb = UserRecords(host=HOST,
                      key=amf_config.redis_server.redis_key,
@@ -37,8 +37,8 @@ ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
 @auth.get_password
 def get_password(username):
     password = None
-    if username == amf_config.http_server.http_user:
-        password = amf_config.http_server.http_password
+    if username == amf_config.general.http_user:
+        password = amf_config.general.http_password
     return password
 
 
@@ -49,7 +49,7 @@ def unauthorized():
 
 def get_decarators():
     decarators = []
-    if amf_config.http_server.enable_auth.lower() in ['true', 'yes', 'on', '1']:
+    if amf_config.general.http_enable_auth.lower() in ['true', 'yes', 'on', '1']:
         decarators.append(auth.login_required)
 
     return decarators
@@ -427,9 +427,9 @@ def run_daemon():
     api.add_resource(ServerStart, '/start')
     api.add_resource(ServerStop, '/stop')
 
-    if amf_config.getboolean('http_server', 'use_ssl'):
+    if amf_config.getboolean('general', 'use_ssl'):
         app.run(host=amf_config.http_server.listen_address, ssl_context=ssl_context,
-                port=amf_config.getint('http_server', 'listen_port'))
+                port=amf_config.getint('general', 'http_server_port'))
     else:
         app.run(host=amf_config.http_server.listen_address,
-                port=amf_config.getint('http_server', 'listen_port'))
+                port=amf_config.getint('general', 'http_server_port'))

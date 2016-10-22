@@ -5,11 +5,8 @@
 import os
 import sys
 import getopt
-import logging
 from active_mail_filter import amf_config, CONF_FILE
 from active_mail_filter.rest_client import get_url, put_url, delete_url, post_url
-
-logger = logging.getLogger(amf_config.logging.logger)
 
 PROGNAME = os.path.basename(sys.argv[0])
 
@@ -70,19 +67,8 @@ def stop_daemon():
 
 
 def do_start_stop_daemon(command):
-    usage = '[-v] '
-
-    try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'v', [])
-    except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
-        sys.exit(print_usage(usage))
-
-    for opt, arg in options:
-        if opt == '-v':
-            logger.setLevel(logging.DEBUG)
-        else:
-            sys.exit(print_usage(usage))
+    if len(sys.argv) > 1:
+        sys.exit(print_usage(''))
 
     status, data = post_url(url_route=command, params={})
     if status != 201:
@@ -137,7 +123,7 @@ def add_rule():
              '-t <target-folder> ')
 
     try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'du:p:e:i:s:t:', [])
+        options, remainder = getopt.getopt(sys.argv[1:], 'u:p:e:i:s:t:', [])
     except getopt.GetoptError as err:
         sys.stderr.write('%s\n' % err)
         sys.exit(print_usage(usage))
@@ -149,9 +135,7 @@ def add_rule():
     source = None
     target = None
     for opt, arg in options:
-        if opt == '-d':
-            logger.setLevel(logging.DEBUG)
-        elif opt == '-u':
+        if opt == '-u':
             user = arg
         elif opt == '-p':
             password = arg
@@ -196,7 +180,7 @@ def modify_rule():
              '-t <target-folder> ')
 
     try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'dU:u:p:e:i:s:t:', [])
+        options, remainder = getopt.getopt(sys.argv[1:], 'U:u:p:e:i:s:t:', [])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
         sys.exit(print_usage(usage))
@@ -209,9 +193,7 @@ def modify_rule():
     source = None
     target = None
     for opt, arg in options:
-        if opt == '-d':
-            logger.setLevel(logging.DEBUG)
-        elif opt == '-U':
+        if opt == '-U':
             uuid = arg
         elif opt == '-u':
             user = arg
@@ -263,19 +245,10 @@ def modify_rule():
 
 def delete_rule():
     usage = 'uuid [uuid2 uuid3 ...] '
-    try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'd', [])
-    except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
+    if len(sys.argv) < 2:
         sys.exit(print_usage(usage))
 
-    for opt, arg in options:
-        if opt == '-d':
-            logger.setLevel(logging.DEBUG)
-        else:
-            sys.exit(print_usage(usage))
-
-    for uuid in remainder:
+    for uuid in sys.argv[1:]:
         url_route = '/show/%s' % uuid
         status, data = delete_url(url_route=url_route)
         if status != 204:
@@ -302,19 +275,19 @@ def update_config():
         if opt == '-v':
             verbose = True
         elif opt == '-i':
-            amf_config.http_client.server_address = arg
+            amf_config.general.http_server_address = arg
         elif opt == '-u':
             info = arg.split(':')
-            amf_config.http_server.http_user = info[0]
-            amf_config.http_server.http_password = info[1]
+            amf_config.general.http_user = info[0]
+            amf_config.general.http_password = info[1]
         elif opt == '-r':
-            amf_config.redis_server.redis_server = arg
+            amf_config.redis_server.redis_server_address = arg
         elif opt == '-k':
             amf_config.redis_server.redis_key = arg
         elif opt == '-c':
             amf_config.redis_server.cipher_key = arg
         elif opt == '-l':
-            amf_config.logger.log_level = arg
+            amf_config.general.log_level = arg
         else:
             sys.exit(print_usage(usage))
 
@@ -324,6 +297,7 @@ def update_config():
     try:
         with open(CONF_FILE, 'w+') as handle:
             amf_config.write(handle)
+            handle.write('\n')
         handle.close()
     except IOError as e:
         sys.stderr.write('Error: %s\n' % str(e))

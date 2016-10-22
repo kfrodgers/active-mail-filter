@@ -3,11 +3,7 @@
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
 import redis
-import logging
 from uuid import uuid4
-from active_mail_filter import amf_config
-
-logger = logging.getLogger(amf_config.logging.logger)
 
 UUID = 'uuid'
 

@@ -7,7 +7,7 @@ import logging
 from active_mail_filter import amf_config
 from active_mail_filter.stoppable_thread import StoppableThread
 
-logger = logging.getLogger(amf_config.logging.logger)
+logger = logging.getLogger(amf_config.general.logger)
 logger.setLevel(logging.DEBUG)
 
 

@@ -8,14 +8,14 @@ import json
 import logging
 from active_mail_filter import amf_config
 
-HOST = os.getenv('AMF_HTTP_SERVER', amf_config.http_client.server_address)
-PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
-AUTH = (amf_config.http_server.http_user, amf_config.http_server.http_password)
+HOST = os.getenv('AMF_HTTP_SERVER', amf_config.general.http_server_address)
+PORT = os.getenv('AMF_HTTP_PORT', amf_config.general.http_server_port)
+AUTH = (amf_config.general.http_user, amf_config.general.http_password)
 CERT = (amf_config.http_server.cert_file, amf_config.http_server.pkey_file)
-USE_SSL = amf_config.getboolean('http_server', 'use_ssl')
-VERIFY_SSL = amf_config.getboolean('http_client', 'verify_ssl')
+USE_SSL = amf_config.getboolean('general', 'use_ssl')
+VERIFY_SSL = amf_config.getboolean('general', 'verify_ssl')
 
-logger = logging.getLogger(amf_config.logging.logger)
+logger = logging.getLogger(amf_config.general.logger)
 
 requests.packages.urllib3.disable_warnings()
 

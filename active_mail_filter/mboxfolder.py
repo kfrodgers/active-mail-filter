@@ -8,7 +8,7 @@ import re
 from email import message_from_string
 from active_mail_filter import amf_config
 
-logger = logging.getLogger(amf_config.logging.logger)
+logger = logging.getLogger(amf_config.general.logger)
 MAX_FETCH_HEADERS = 2048
 
 

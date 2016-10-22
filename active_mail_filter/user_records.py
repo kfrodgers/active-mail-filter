@@ -7,7 +7,7 @@ from simple_db import SimpleRedisDb, UUID
 from simple_password import SimplePassword
 from active_mail_filter import amf_config
 
-logger = logging.getLogger(amf_config.logging.logger)
+logger = logging.getLogger(amf_config.general.logger)
 
 USER = 'user'
 EMAIL = 'email'
