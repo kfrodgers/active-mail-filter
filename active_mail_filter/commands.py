@@ -120,8 +120,9 @@ def check_folders(user, password, mail_server, source, target):
         print_folders(folders)
         sys.exit(1)
 
-    # can't use inbox as target folder
-    if target.lower() == 'inbox' or target not in folders:
+    # can't use inbox, trash, sent or drafts as target folder
+    excluded_folders = ['inbox', 'trash', 'sent', 'sent mail', 'draft', 'drafts']
+    if target.lower() in excluded_folders or target not in folders:
         sys.stderr.write('%s: Invalid target folder\n' % target)
         print_folders(folders)
         sys.exit(1)

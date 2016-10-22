@@ -3,13 +3,13 @@
 # Released subject to the New BSD License
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
-import sys
 import logging
 from active_mail_filter import amf_config
 from active_mail_filter.mboxfolder import MboxFolder
 
 logger = logging.getLogger(amf_config.logging.logger)
 logger.setLevel(logging.DEBUG)
+
 
 def main():
     host = 'imap.mail.yahoo.com'

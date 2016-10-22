@@ -5,8 +5,6 @@
 from Crypto.Cipher import AES
 import logging
 import base64
-import string
-import random
 from active_mail_filter import amf_config
 
 logger = logging.getLogger(amf_config.logging.logger)
@@ -14,23 +12,28 @@ logger = logging.getLogger(amf_config.logging.logger)
 
 class SimplePassword(object):
     def __init__(self, secret_key):
-        logger.debug('secret key length == %d' % len(secret_key))
-        self.secret_key = secret_key
+        if len(secret_key) not in [16, 24, 32]:
+            self.secret_key = secret_key + '='*16
+            if len(secret_key) > 24:
+                self.secret_key = self.secret_key[0:32]
+            elif len(secret_key) > 16:
+                self.secret_key = self.secret_key[0:24]
+            else:
+                self.secret_key = self.secret_key[0:16]
+        else:
+            self.secret_key = secret_key
+
         self.cipher = AES.new(self.secret_key, mode=AES.MODE_ECB)
 
     def __str__(self):
         return 'SimplePassword [secret_key=' + self.secret_key + ', cipher=' + str(self.cipher) + ']'
 
     def encode(self, password):
-        oldlen = len(password)
-        addlen = 2
-        while ((oldlen + addlen) % 16) != 0:
-            password = random.choice(string.letters) + password
-            addlen+=1
+        old_length = len(password) + 2
+        padding = '-'*((16 - (old_length % 16)) % 16)
 
-        password = '%2.2d%s' % (addlen, password)
-        logger.debug('added %d bytes to password' % addlen)
-        return base64.b64encode(self.cipher.encrypt(password))
+        padded_password = '%2.2d%s%s' % (len(padding)+2, padding, password)
+        return base64.b64encode(self.cipher.encrypt(padded_password))
 
     def decode(self, encoded_password):
         try:
@@ -40,9 +43,8 @@ class SimplePassword(object):
             logger.error('password decrypt failed, %s', e.message)
 
         password = decoded.strip()
-        logger.debug('skipping first %s bytes' % password[0:2])
         try:
-            addlen = int(password[0:2])
+            pad_length = int(password[0:2])
         except ValueError:
-            addlen = 0
-        return password[addlen:]
+            pad_length = 0
+        return password[pad_length:]

@@ -107,7 +107,7 @@ class MboxFolder(object):
 
         try:
             msg = message_from_string(data[0][1].decode(encoding='UTF-8'))
-        except UnicodeEncodeError as e:
+        except UnicodeEncodeError:
             msg = message_from_string(data[0][1].decode(encoding='ascii', errors='ignore'))
 
         return msg

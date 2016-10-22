@@ -38,6 +38,9 @@ if not amf_config.has_option('redis_server', 'cipher_key'):
 if not amf_config.has_option('http_client', 'server_address'):
     amf_config.set('http_client', 'server_address', value='127.0.0.1')
 
+if not amf_config.has_option('http_client', 'verify_ssl'):
+    amf_config.set('http_client', 'verify_ssl', value='False')
+
 if not amf_config.has_option('http_server', 'enable_auth'):
     amf_config.set('http_server', 'enable_auth', value='True')
 

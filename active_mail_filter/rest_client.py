@@ -13,8 +13,11 @@ PORT = os.getenv('AMF_HTTP_PORT', amf_config.http_server.listen_port)
 AUTH = (amf_config.http_server.http_user, amf_config.http_server.http_password)
 CERT = (amf_config.http_server.cert_file, amf_config.http_server.pkey_file)
 USE_SSL = amf_config.getboolean('http_server', 'use_ssl')
+VERIFY_SSL = amf_config.getboolean('http_client', 'verify_ssl')
 
 logger = logging.getLogger(amf_config.logging.logger)
+
+requests.packages.urllib3.disable_warnings()
 
 
 def _build_url(url_route='/'):
@@ -30,7 +33,7 @@ def post_url(url_route, params):
     try:
         url = _build_url(url_route=url_route)
         datastr = json.dumps(params).replace(' ', '')
-        req = requests.post(url, data=datastr, headers=headers, auth=AUTH, verify=USE_SSL, cert=CERT)
+        req = requests.post(url, data=datastr, headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = req.status_code
         if req.headers['content-type'].find("json") < 0:
             response = req.text
@@ -46,7 +49,7 @@ def put_url(url_route, params):
     headers = {'content-type': 'application/json'}
     try:
         url = _build_url(url_route=url_route)
-        req = requests.put(url, data=json.dumps(params), headers=headers, auth=AUTH, verify=USE_SSL, cert=CERT)
+        req = requests.put(url, data=json.dumps(params), headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = req.status_code
         if req.headers['content-type'].find("json") < 0:
             response = req.text
@@ -61,7 +64,7 @@ def put_url(url_route, params):
 def get_url(url_route):
     try:
         url = _build_url(url_route=url_route)
-        data = requests.get(url, auth=AUTH, verify=USE_SSL, cert=CERT)
+        data = requests.get(url, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = data.status_code
         if data.headers['content-type'].find("json") < 0:
             response = data.text
@@ -76,7 +79,7 @@ def get_url(url_route):
 def delete_url(url_route):
     try:
         url = _build_url(url_route=url_route)
-        data = requests.delete(url, auth=AUTH, verify=USE_SSL, cert=CERT)
+        data = requests.delete(url, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = data.status_code
         if data.status_code != 204:
             if data.headers['content-type'].find("json") < 0:

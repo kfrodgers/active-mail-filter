@@ -7,7 +7,6 @@ import sys
 import getopt
 import logging
 import signal
-import threading
 from flask import Flask, make_response, jsonify
 from flask_restful import Resource, Api, abort, reqparse
 from flask_httpauth import HTTPBasicAuth
@@ -16,6 +15,7 @@ from active_mail_filter import amf_config
 from active_mail_filter.imapuser import ImapUser
 from active_mail_filter.mboxfolder import MboxFolder
 from active_mail_filter.user_records import UserRecords
+from active_mail_filter.stoppable_thread import StoppableThread
 from active_mail_filter.user_records import UUID, USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET
 
 HOST = os.getenv('AMF_REDIS_SERVER', amf_config.redis_server.redis_server)
@@ -31,7 +31,6 @@ api = Api(app)
 auth = HTTPBasicAuth()
 ssl_context = (amf_config.http_server.cert_file, amf_config.http_server.pkey_file)
 
-STOP_EVENT = threading.Event()
 ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
 
 
@@ -57,16 +56,18 @@ def get_decarators():
 
 
 def worker_thread(rule_records):
+    my_thread = StoppableThread.current_thread()
     for rule in rule_records:
-        if STOP_EVENT.is_set():
+        if my_thread.is_stopped():
             break
 
+        my_thread.set_active()
         logger.debug('%s: moving %s to %s on %s', rule[USER], rule[SOURCE], rule[TARGET], rule[MAILSERVER])
         imap = ImapUser(rule[MAILSERVER], rule[USER], rule[PASSWORD],
                         to_folder=rule[TARGET], from_folder=rule[SOURCE])
         cnt, moved_uids = imap.filter_mail()
         if cnt > 0:
-            logger.info('%s: moved %d messages %s', threading.currentThread().getName(), cnt, str(moved_uids))
+            logger.info('%s: moved %d messages %s', my_thread.getName(), cnt, str(moved_uids))
         del imap
 
 
@@ -85,7 +86,7 @@ def sort_by_user(records):
 def run_all_workers(users_jobs):
     mail_threads = []
     for u in users_jobs.keys():
-        th = threading.Thread(name=u, target=worker_thread, args=(users_jobs[u],))
+        th = StoppableThread(name=u, target=worker_thread, args=(users_jobs[u],))
         mail_threads.append(th)
         th.start()
 
@@ -93,7 +94,10 @@ def run_all_workers(users_jobs):
     while is_alive:
         for th in mail_threads:
             th.join(5)
-            if th.isAlive():
+            if not th.is_active(300):
+                th.kill()
+
+            if th.is_alive():
                 logger.debug('%s: is still alive' % th.getName())
                 break
         else:
@@ -101,63 +105,71 @@ def run_all_workers(users_jobs):
 
 
 def run_mail_daemon():
-    while not STOP_EVENT.is_set():
+    my_thread = StoppableThread.current_thread()
+    while not my_thread.is_stopped():
         users = userdb.get_all_users()
         if len(users) > 0:
             mail_users = sort_by_user(users)
             run_all_workers(mail_users)
         else:
             logger.warning('No user records found')
-        STOP_EVENT.wait(60.0)
+        my_thread.wait(60.0)
     logger.info('filter_daemon: exiting')
 
 
 def start_daemon_thread():
-    thread_list = list_all_threads()
-    if 'filter_daemon' in thread_list:
+    try:
+        StoppableThread.find_by_name('filter_daemon')
         raise DaemonAlreadyRunning()
+    except LookupError:
+        pass
 
     logger.info('Starting filter process')
-    STOP_EVENT.clear()
-    th = threading.Thread(name='filter_daemon', target=run_mail_daemon)
-    th.setDaemon(True)
-    th.start()
-    return th
+    daemon_thread = StoppableThread(name='filter_daemon', target=run_mail_daemon)
+    daemon_thread.setDaemon(True)
+    daemon_thread.start()
+    return daemon_thread
 
 
 def stop_daemon_thread():
-    thread_list = list_all_threads()
-    if 'filter_daemon' not in thread_list:
+    try:
+        daemon_thread = StoppableThread.find_by_name('filter_daemon')
+        logger.info('Stopping filter process')
+        for th in StoppableThread.enumerate():
+            th.stop()
+
+    except LookupError:
         raise DaemonAlreadyStopped()
 
-    logger.info('Stopping filter process')
-    STOP_EVENT.set()
+    return daemon_thread
 
 
 def list_all_threads():
-    current_thread = threading.currentThread()
     thread_dict = {}
-    for th in threading.enumerate():
-        if th is current_thread:
-            continue
+    for th in StoppableThread.enumerate():
         thread_dict[th.getName()] = str(th.isAlive())
     return thread_dict
 
 
 def sigterm_handler(signum, frame):
     logger.info('Caught signal %d, shutting down', signum)
-    if frame is not None and hasattr(frame, 'f_code'):
-        logger.debug('Frame == %s', str(frame.f_code))
+    logger.debug('Frame = %s', str(frame))
     try:
-        stop_daemon_thread()
-        logger.info('Stopping worker threads')
+        daemon_thread = stop_daemon_thread()
+        logger.info('Waiting for filter process to exit')
+
+        daemon_thread.join(15)
+        for th in StoppableThread.enumerate():
+            if th != daemon_thread and th.is_alive():
+                logger.warning('Killing thread %s', th.getName())
+                th.kill()
+
+        if daemon_thread.is_alive():
+            logger.info('Waiting for filter process to die')
+            daemon_thread.join()
     except DaemonAlreadyStopped:
         pass
 
-    for th in threading.enumerate():
-        if 'filter_daemon' == th.getName():
-            logger.info('Waiting for filter process to exit')
-            th.join()
     sys.exit(0)
 
 
@@ -227,7 +239,8 @@ class ServerStop(Resource):
     def post(self):
         self.counters['post'] += 1
         try:
-            stop_daemon_thread()
+            th = stop_daemon_thread()
+            th.join()
         except DaemonAlreadyStopped:
             abort(400, message='server already stopped')
 
