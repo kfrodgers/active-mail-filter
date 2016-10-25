@@ -2,13 +2,12 @@
 # Released subject to the New BSD License
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
-import logging
 import imaplib
 import re
 from email import message_from_string
-from active_mail_filter import amf_config
+from active_mail_filter import get_logger, trace
 
-logger = logging.getLogger(amf_config.general.logger)
+logger = get_logger()
 MAX_FETCH_HEADERS = 2048
 
 
@@ -67,7 +66,7 @@ class MboxFolder(object):
         logger.debug('search for %s in %s returned %d uids' % (pattern, folder_name, len(uids)))
         return uids
 
-    def list_from_addresses(self, folder_name, max_count=None):
+    def list_from_addresses(self, folder_name):
         from_list = set()
         uid_list = self.list_email_uids(folder_name=folder_name)
         if len(uid_list) > 0:
@@ -77,8 +76,6 @@ class MboxFolder(object):
                     logger.error('Message missing From attribute %s', str(msg))
                     continue
                 from_list.add(msg['From'].lower())
-                if max_count is not None and len(from_list) >= max_count:
-                    break
         logger.debug('found %d from addresses' % len(from_list))
         return list(from_list)
 
@@ -98,27 +95,29 @@ class MboxFolder(object):
                 raise RuntimeError('%s: malformed email address' % from_string)
         else:
             found = from_string.split(' ')[0]
-        return found
+        return found.translate(None, '\t\n\r').strip()
+
+    @staticmethod
+    def _get_email_message(data):
+        try:
+            email_message = message_from_string(data.decode(encoding='UTF-8', errors='ignore'))
+        except UnicodeEncodeError:
+            email_message = message_from_string(data.decode(encoding='ascii', errors='ignore'))
+        return email_message
 
     def fetch_uid_message(self, uid):
         result, data = self.imap.uid("FETCH", uid, "(BODY.PEEK[])")
         if result != 'OK':
             raise LookupError('%lu not found' % uid)
 
-        try:
-            msg = message_from_string(data[0][1].decode(encoding='UTF-8'))
-        except UnicodeEncodeError:
-            msg = message_from_string(data[0][1].decode(encoding='ascii', errors='ignore'))
+        return self._get_email_message(data[0][1])
 
-        return msg
-
-    def fetch_uid_headers(self, uids):
+    def fetch_uid_headers(self, uids, batch_size=MAX_FETCH_HEADERS):
         messages = []
-        index = 0
-        while index < len(uids):
-            count = len(uids[index:index+MAX_FETCH_HEADERS])
-            uid_str = ",".join(uids[index:index+MAX_FETCH_HEADERS])
-            logger.debug('Fetching uids[%d:%d] == { %s }', index, index+MAX_FETCH_HEADERS, uid_str)
+        for index in range(0, len(uids), batch_size):
+            count = len(uids[index:index+batch_size])
+            uid_str = ",".join(uids[index:index+batch_size])
+            trace('Fetching uids[%d:%d] == { %s }', index, index+batch_size, uid_str)
             result, data = self.imap.uid("FETCH", uid_str, "(BODY.PEEK[HEADER.FIELDS (SUBJECT DATE TO FROM)])")
             if result != 'OK':
                 raise LookupError('%lu not found' % uid_str)
@@ -128,10 +127,8 @@ class MboxFolder(object):
                     logger.error('data[%d] type=%s value=%s', i, str(type(data[i])), str(data[i]))
                 raise LookupError('FETCH bad count, expected %d got %d' % ((2 * count), len(data)))
 
-            for i in range(1, (2 * count), 2):
-                messages.append(message_from_string(data[i-1][1]))
-
-            index += count
+            for i in range(0, (2 * count), 2):
+                messages.append(self._get_email_message(data[i][1]))
 
         return messages
 
@@ -153,23 +150,34 @@ class MboxFolder(object):
         if result != 'OK':
             raise LookupError('%lu not found' % uid)
 
-    def list_email_uids_from_user(self, from_user, from_folder='inbox'):
-        email_addr = self.extract_email_address(from_user)
-        pattern = '(FROM "{email}")'.format(email=email_addr)
-        email_uids = self.list_email_uids(folder_name=from_folder, pattern=pattern)
+    def list_email_uids_from_users(self, from_users, from_folder='inbox'):
+        email_addresses = list(set(self.extract_email_address(f) for f in from_users))
+
+        sub_pattern = 'FROM "%s"' % email_addresses[0]
+        for i in range(1, len(email_addresses)):
+            sub_pattern = 'OR %s FROM "%s"' % (sub_pattern, email_addresses[i])
+
+        pattern = '(%s)' % sub_pattern
+        try:
+            email_uids = self.list_email_uids(folder_name=from_folder, pattern=pattern)
+        except Exception as e:
+            logger.warning('Failed search for pattern %s', pattern)
+            logger.error(e)
+            raise e
         return email_uids
 
-    def move_emails_from_user(self, from_user, to_folder, from_folder='inbox'):
+    def move_emails_from_users(self, from_users, to_folder, from_folder='inbox'):
         moved_uids = []
-        email_uids = self.list_email_uids_from_user(from_user, from_folder=from_folder)
+        from_lower_users = [x.lower() for x in from_users]
+        email_uids = self.list_email_uids_from_users(from_users, from_folder=from_folder)
         for uid in email_uids:
             email_msg = self.fetch_uid_headers([uid])
             email_from = email_msg[0]['From']
-            if email_from.lower() == from_user.lower():
+            if email_from.lower() in from_lower_users:
                 self.move_uid(uid, to_folder)
                 moved_uids.append(uid)
             else:
-                logger.debug('%s not equal to %s' % (email_from.lower(), from_user.lower()))
+                trace('%s not in %s', email_from.lower(), str(from_lower_users))
         return moved_uids
 
     def move_uid(self, uid, to_folder):

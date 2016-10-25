@@ -3,11 +3,10 @@
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
 from Crypto.Cipher import AES
-import logging
 import base64
-from active_mail_filter import amf_config
+from active_mail_filter import get_logger
 
-logger = logging.getLogger(amf_config.general.logger)
+logger = get_logger()
 
 
 class SimplePassword(object):

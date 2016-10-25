@@ -6,30 +6,32 @@ import os
 import sys
 import getopt
 import logging
+import time
 import signal
 from flask import Flask, make_response, jsonify
 from flask_restful import Resource, Api, abort, reqparse
 from flask_httpauth import HTTPBasicAuth
 
-from active_mail_filter import amf_config
+from active_mail_filter import get_logger, read_configuration_file, trace
 from active_mail_filter.imapuser import ImapUser
 from active_mail_filter.mboxfolder import MboxFolder
 from active_mail_filter.user_records import UserRecords
 from active_mail_filter.stoppable_thread import StoppableThread
 from active_mail_filter.user_records import UUID, USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET
 
-HOST = os.getenv('AMF_REDIS_SERVER', amf_config.redis_server.redis_server_address)
+_CONF_ = read_configuration_file()
+HOST = os.getenv('AMF_REDIS_SERVER', _CONF_.redis_server.redis_server_address)
 
-logger = logging.getLogger(amf_config.general.logger)
+logger = get_logger()
 
 userdb = UserRecords(host=HOST,
-                     key=amf_config.redis_server.redis_key,
-                     cipher=amf_config.redis_server.cipher_key)
+                     key=_CONF_.redis_server.redis_key,
+                     cipher=_CONF_.redis_server.cipher_key)
 
 app = Flask(__name__)
 api = Api(app)
 auth = HTTPBasicAuth()
-ssl_context = (amf_config.http_server.cert_file, amf_config.http_server.pkey_file)
+ssl_context = (_CONF_.http_server.cert_file, _CONF_.http_server.pkey_file)
 
 ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
 
@@ -37,8 +39,8 @@ ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
 @auth.get_password
 def get_password(username):
     password = None
-    if username == amf_config.general.http_user:
-        password = amf_config.general.http_password
+    if username == _CONF_.general.http_user:
+        password = _CONF_.general.http_password
     return password
 
 
@@ -49,7 +51,7 @@ def unauthorized():
 
 def get_decarators():
     decarators = []
-    if amf_config.general.http_enable_auth.lower() in ['true', 'yes', 'on', '1']:
+    if _CONF_.general.http_enable_auth.lower() in ['true', 'yes', 'on', '1']:
         decarators.append(auth.login_required)
 
     return decarators
@@ -98,7 +100,7 @@ def run_all_workers(users_jobs):
                 th.kill()
 
             if th.is_alive():
-                logger.debug('%s: is still alive' % th.getName())
+                trace('%s: is still alive' % th.getName())
                 break
         else:
             is_alive = False
@@ -110,9 +112,11 @@ def run_mail_daemon():
         users = userdb.get_all_users()
         if len(users) > 0:
             mail_users = sort_by_user(users)
+            start = time.time()
             run_all_workers(mail_users)
+            logger.debug('run_all_workers elaspsed time = %f', time.time() - start)
         else:
-            logger.warning('No user records found')
+            logger.debug('No user records found')
         my_thread.wait(60.0)
     logger.info('filter_daemon: exiting')
 
@@ -153,7 +157,7 @@ def list_all_threads():
 
 def sigterm_handler(signum, frame):
     logger.info('Caught signal %d, shutting down', signum)
-    logger.debug('Frame = %s', str(frame))
+    trace('Frame = %s', str(frame))
     try:
         daemon_thread = stop_daemon_thread()
         logger.info('Waiting for filter process to exit')
@@ -427,9 +431,9 @@ def run_daemon():
     api.add_resource(ServerStart, '/start')
     api.add_resource(ServerStop, '/stop')
 
-    if amf_config.getboolean('general', 'use_ssl'):
-        app.run(host=amf_config.http_server.listen_address, ssl_context=ssl_context,
-                port=amf_config.getint('general', 'http_server_port'))
+    if _CONF_.getboolean('general', 'use_ssl'):
+        app.run(host=_CONF_.http_server.listen_address, ssl_context=ssl_context,
+                port=_CONF_.getint('general', 'http_server_port'))
     else:
-        app.run(host=amf_config.http_server.listen_address,
-                port=amf_config.getint('general', 'http_server_port'))
+        app.run(host=_CONF_.http_server.listen_address,
+                port=_CONF_.getint('general', 'http_server_port'))

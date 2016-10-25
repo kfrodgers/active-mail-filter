@@ -5,7 +5,7 @@
 import os
 import sys
 import getopt
-from active_mail_filter import amf_config, CONF_FILE
+from active_mail_filter import read_configuration_file, write_configuration_file
 from active_mail_filter.rest_client import get_url, put_url, delete_url, post_url
 
 PROGNAME = os.path.basename(sys.argv[0])
@@ -256,7 +256,7 @@ def delete_rule():
 
 
 def update_config():
-    usage = ('[-v] '
+    usage = ('[-s] '
              '[-i <http-client-address> ] '
              '[-u <http-user>:<http-password>] '
              '[-r <redis-server>] '
@@ -270,34 +270,33 @@ def update_config():
         sys.stderr.write('%s\n' % err)
         sys.exit(print_usage(usage))
 
-    verbose = False
+    conf = read_configuration_file()
+
+    verbose = True
     for opt, arg in options:
-        if opt == '-v':
-            verbose = True
+        if opt == '-s':
+            verbose = False
         elif opt == '-i':
-            amf_config.general.http_server_address = arg
+            conf.general.http_server_address = arg
         elif opt == '-u':
             info = arg.split(':')
-            amf_config.general.http_user = info[0]
-            amf_config.general.http_password = info[1]
+            conf.general.http_user = info[0]
+            conf.general.http_password = info[1]
         elif opt == '-r':
-            amf_config.redis_server.redis_server_address = arg
+            conf.redis_server.redis_server_address = arg
         elif opt == '-k':
-            amf_config.redis_server.redis_key = arg
+            conf.redis_server.redis_key = arg
         elif opt == '-c':
-            amf_config.redis_server.cipher_key = arg
+            conf.redis_server.cipher_key = arg
         elif opt == '-l':
-            amf_config.general.log_level = arg
+            conf.general.log_level = arg
         else:
             sys.exit(print_usage(usage))
 
     if verbose:
-        amf_config.write(sys.stdout)
+        conf.write(sys.stdout)
 
     try:
-        with open(CONF_FILE, 'w+') as handle:
-            amf_config.write(handle)
-            handle.write('\n')
-        handle.close()
+        write_configuration_file(conf=conf)
     except IOError as e:
         sys.stderr.write('Error: %s\n' % str(e))

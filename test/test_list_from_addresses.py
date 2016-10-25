@@ -4,10 +4,10 @@
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
 import logging
-from active_mail_filter import amf_config
+from active_mail_filter import get_logger
 from active_mail_filter.mboxfolder import MboxFolder
 
-logger = logging.getLogger(amf_config.general.logger)
+logger = get_logger()
 logger.setLevel(logging.DEBUG)
 
 

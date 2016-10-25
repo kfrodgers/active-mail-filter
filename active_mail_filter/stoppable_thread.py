@@ -2,13 +2,12 @@
 # Released subject to the New BSD License
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
-import logging
 import threading
 import time
 import ctypes
-from active_mail_filter import amf_config
+from active_mail_filter import get_logger
 
-logger = logging.getLogger(amf_config.general.logger)
+logger = get_logger()
 
 
 class StoppableThread(threading.Thread):
