@@ -206,7 +206,11 @@ class MboxFolder(object):
                 server.login(smtp_login, smtp_passwd)
                 server.sendmail(email_message[0]['From'], to_user, self.fetch_uid(uid))
                 server.quit()
-                logger.debug('Forwarded message from %s to %s', email_message[0]['From'], to_user)
+                from_user = email_message[0]['From']
+                logger.debug('Forwarded message from %s to %s', from_user, to_user)
             except Exception as e:
                 logger.error('Failed to forward mail from %s, %s', email_message[0]['From'], e.message)
                 raise e
+        else:
+            from_user = None
+        return from_user
