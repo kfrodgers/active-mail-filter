@@ -2,8 +2,9 @@
 # Released subject to the New BSD License
 # Please see http://en.wikipedia.org/wiki/BSD_licenses
 
-import imaplib
 import re
+import smtplib
+import imaplib
 from email import message_from_string
 from active_mail_filter import get_logger, trace
 
@@ -71,11 +72,9 @@ class MboxFolder(object):
         uid_list = self.list_email_uids(folder_name=folder_name)
         if len(uid_list) > 0:
             msg_list = self.fetch_uid_headers(uid_list)
-            for msg in msg_list:
-                if 'From' not in msg:
-                    logger.error('Message missing From attribute %s', str(msg))
-                    continue
-                from_list.add(msg['From'].lower())
+            for i in range(0, len(msg_list)):
+                if 'From' in msg_list[i]:
+                    from_list.add(msg_list[i]['From'].lower())
         logger.debug('found %d from addresses' % len(from_list))
         return list(from_list)
 
@@ -105,12 +104,15 @@ class MboxFolder(object):
             email_message = message_from_string(data.decode(encoding='ascii', errors='ignore'))
         return email_message
 
-    def fetch_uid_message(self, uid):
+    def fetch_uid(self, uid):
         result, data = self.imap.uid("FETCH", uid, "(BODY.PEEK[])")
         if result != 'OK':
             raise LookupError('%lu not found' % uid)
 
-        return self._get_email_message(data[0][1])
+        return data[0][1]
+
+    def fetch_uid_message(self, uid):
+        return self._get_email_message(self.fetch_uid(uid))
 
     def fetch_uid_headers(self, uids, batch_size=MAX_FETCH_HEADERS):
         messages = []
@@ -180,13 +182,31 @@ class MboxFolder(object):
                 trace('%s not in %s', email_from.lower(), str(from_lower_users))
         return moved_uids
 
+    def delete_uid(self, uid):
+        result, data = self.imap.uid('STORE', uid, '+FLAGS', '(\Deleted)')
+        if result == 'OK':
+            self.imap.expunge()
+        else:
+            logger.error('item not deleted, %s' % str(data))
+
     def move_uid(self, uid, to_folder):
         result, data = self.imap.uid('COPY', uid, to_folder)
         if result == 'OK':
-            result, data = self.imap.uid('STORE', uid, '+FLAGS', '(\Deleted)')
-            if result == 'OK':
-                self.imap.expunge()
-            else:
-                logger.error('item mot deleted, {data}'.format(data=data))
+            self.delete_uid(uid)
         else:
-            logger.error('item not copied, {data}'.format(data=data))
+            logger.error('item not copied, %s' % str(data))
+
+    def forward_message(self, uid, to_user, smtp_login, smtp_passwd, smtp_server, smtp_port=587):
+        email_message = self.fetch_uid_headers([uid])
+        if len(email_message) > 0 and 'From' in email_message[0]:
+            try:
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                server.ehlo()
+                server.starttls()
+                server.login(smtp_login, smtp_passwd)
+                server.sendmail(email_message[0]['From'], to_user, self.fetch_uid(uid))
+                server.quit()
+                logger.debug('Forwarded message from %s to %s', email_message[0]['From'], to_user)
+            except Exception as e:
+                logger.error('Failed to forward mail from %s, %s', email_message[0]['From'], e.message)
+                raise e
