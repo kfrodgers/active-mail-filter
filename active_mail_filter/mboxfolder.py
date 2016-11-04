@@ -196,14 +196,15 @@ class MboxFolder(object):
         else:
             logger.error('item not copied, %s' % str(data))
 
-    def forward_message(self, uid, to_user, smtp_login, smtp_passwd, smtp_server, smtp_port=587):
+    def forward_message(self, uid, to_user, smtp_server, smtp_login=None, smtp_passwd=None, smtp_port=587):
         email_message = self.fetch_uid_headers([uid])
         if len(email_message) > 0 and 'From' in email_message[0]:
             try:
                 server = smtplib.SMTP(smtp_server, smtp_port)
                 server.ehlo()
                 server.starttls()
-                server.login(smtp_login, smtp_passwd)
+                if smtp_login is not None:
+                    server.login(smtp_login, smtp_passwd)
                 server.sendmail(email_message[0]['From'], to_user, self.fetch_uid(uid))
                 server.quit()
                 from_user = email_message[0]['From']

@@ -63,7 +63,6 @@ def worker_thread(rule_records):
         if my_thread.is_stopped():
             break
 
-        my_thread.set_active()
         logger.debug('%s: moving %s to %s on %s', rule[USER], rule[SOURCE], rule[TARGET], rule[MAILSERVER])
         imap = ImapUser(rule[MAILSERVER], rule[USER], rule[PASSWORD],
                         to_folder=rule[TARGET], from_folder=rule[SOURCE])
@@ -96,11 +95,12 @@ def run_all_workers(users_jobs):
     while is_alive:
         for th in mail_threads:
             th.join(5)
-            if not th.is_active(300):
-                th.kill()
-
             if th.is_alive():
                 trace('%s: is still alive' % th.getName())
+                if th.elapsed_time() > 300:
+                    th.kill()
+                    logger.error('%s: Thread appears hung, killing', th.getName())
+                    mail_threads.remove(th)
                 break
         else:
             is_alive = False

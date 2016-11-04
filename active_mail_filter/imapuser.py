@@ -56,14 +56,16 @@ class ImapUser(object):
         self.disconnect()
         return len(moved_uids), moved_uids
 
-    def forward_mail(self, smtp_to, smtp_login, smtp_passwd, smtp_host, smtp_port=587):
+    def forward_mail(self, smtp_to, smtp_host, smtp_login=None, smtp_passwd=None, smtp_port=587):
         from_list = []
         self.mailbox.connect()
         try:
             uids = self.mailbox.list_email_uids(folder_name=self.from_folder, pattern='(UNSEEN)')
             for uid in uids:
-                from_user = self.mailbox.forward_message(uid, smtp_to, smtp_login, smtp_passwd,
-                                                         smtp_host, smtp_port=smtp_port)
+                logger.debug('Forwarding uid == %s', uid)
+                from_user = self.mailbox.forward_message(uid, smtp_to, smtp_host,
+                                                         smtp_login=smtp_login, smtp_passwd=smtp_passwd,
+                                                         smtp_port=smtp_port)
                 if from_user is not None:
                     self.mailbox.mark_uid_read(uid)
                     from_list.append(from_user)

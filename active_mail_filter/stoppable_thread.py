@@ -13,7 +13,7 @@ logger = get_logger()
 class StoppableThread(threading.Thread):
     def __init__(self, **kwargs):
         self.event = threading.Event()
-        self.counter = 0
+        self.start_time = time.time()
         self.has_been_killed = False
         self.lock = threading.Lock()
         threading.Thread.__init__(self, **kwargs)
@@ -52,17 +52,11 @@ class StoppableThread(threading.Thread):
     def wait(self, timeout=None):
         self.event.wait(timeout=timeout)
 
-    def set_active(self):
-        self.lock.acquire()
-        self.counter = 0
-        self.lock.release()
-
-    def is_active(self, intervals):
-        self.lock.acquire()
-        is_active = self.counter < intervals
-        self.counter += 1
-        self.lock.release()
-        return is_active and self.is_alive()
+    def elapsed_time(self):
+        current_time = time.time()
+        if current_time < self.start_time:
+            self.start_time = current_time
+        return current_time - self.start_time
 
     def kill(self):
         self.lock.acquire()

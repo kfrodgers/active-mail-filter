@@ -15,7 +15,6 @@ def worker(counter, interval):
     try:
         my_thread = StoppableThread.current_thread()
         for i in range(0, counter):
-            my_thread.set_active()
             if my_thread.is_stopped():
                 logger.debug('caught stop event')
                 break
@@ -32,7 +31,7 @@ def test_nokill():
     logger.debug('starting thread')
     th.start()
     while th.is_alive():
-        if not th.is_active(5):
+        if th.elapsed_time() > 30:
             th.kill()
         th.join(1)
     logger.debug('thread done')
@@ -47,7 +46,8 @@ def test_kill():
 
     th = StoppableThread.find_by_name('worker')
     while th.is_alive():
-        if not th.is_active(2):
+        if th.elapsed_time() > 33:
+            logger.debug('killing thread')
             th.kill()
         th.join(1)
     logger.debug('thread done')
@@ -61,7 +61,8 @@ def test_stop():
     th.start()
     th = StoppableThread.find_by_name('worker')
     while th.is_alive():
-        if not th.is_active(2):
+        if th.elapsed_time() > 25:
+            logger.debug('stopping thread')
             th.stop()
         th.join(1)
     logger.debug('thread done')
