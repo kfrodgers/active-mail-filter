@@ -47,13 +47,7 @@ def list_rules():
     for name in users.keys():
         if user is not None and user != name:
             continue
-        for uuid in users[name]:
-            url_route = '/show/%s' % uuid
-            status, data = get_url(url_route=url_route)
-            if status != 200:
-                sys.stderr.write('%s\n' % str(data))
-                sys.exit(status)
-            rec = data['data']
+        for rec in users[name]:
             sys.stdout.write(format_string % (rec['uuid'], rec['user'],
                                               rec['mail_server'], rec['source'], rec['target']))
 

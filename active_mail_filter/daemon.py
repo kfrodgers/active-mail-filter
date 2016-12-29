@@ -9,6 +9,7 @@ import logging
 import time
 import signal
 from flask import Flask, make_response, jsonify
+from flask_cors import CORS
 from flask_restful import Resource, Api, abort, reqparse
 from flask_httpauth import HTTPBasicAuth
 
@@ -29,6 +30,7 @@ userdb = UserRecords(host=HOST,
                      cipher=_CONF_.redis_server.cipher_key)
 
 app = Flask(__name__)
+cors = CORS(app)
 api = Api(app)
 auth = HTTPBasicAuth()
 ssl_context = (_CONF_.http_server.cert_file, _CONF_.http_server.pkey_file)
@@ -261,12 +263,14 @@ class RecordList(Resource):
     def get(self):
         self.counters['get'] += 1
         users = userdb.get_all_users()
-        name_uuid = {}
+        email_info = {}
         for u in users:
-            if u[USER] not in name_uuid:
-                name_uuid[u[USER]] = []
-            name_uuid[u[USER]].append(u[UUID])
-        return {'data': name_uuid}
+            email = u[EMAIL]
+            if email not in email_info:
+                email_info[email] = []
+            del u[PASSWORD]
+            email_info[email].append(u)
+        return {'data': email_info}
 
 
 class RecordInfo(Resource):
