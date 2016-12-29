@@ -292,18 +292,6 @@ class RecordInfo(Resource):
 
         return {'data': user_record}
 
-    def delete(self, uuid):
-        self.counters['delete'] += 1
-        try:
-            user_record = userdb.get_user_by_uuid(uuid)
-            logger.debug('delete %s/%s', user_record[USER], user_record[UUID])
-            userdb.del_record(uuid)
-        except Exception as e:
-            logger.error('delete failed, %s', e.message)
-            abort(404, message="delete failed, {}".format(e.message))
-
-        return '', 204
-
 
 class RecordAdd(Resource):
     decorators = get_decarators()
@@ -334,6 +322,36 @@ class RecordAdd(Resource):
             abort(400, message='add failed, {}'.format(e.message))
 
         return {'data': user_record}, 201
+
+
+class RecordDelete(Resource):
+    decorators = get_decarators()
+
+    def __init__(self):
+        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
+        self.parser = reqparse.RequestParser()
+        for arg in ARGUMENTS:
+            self.parser.add_argument(arg)
+        super(RecordDelete, self).__init__()
+
+    def post(self, uuid):
+        self.counters['delete'] += 1
+        try:
+            args = self.parser.parse_args()
+            if args[PASSWORD] is None:
+                logger.error('Missing %s keyword', PASSWORD)
+                raise Exception('Missing {} keyword'.format(PASSWORD))
+
+            user_record = userdb.get_user_by_uuid(uuid)
+            mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], args[PASSWORD])
+            mbox.disconnect()
+            logger.debug('delete %s/%s', user_record[USER], user_record[UUID])
+            userdb.del_record(uuid)
+        except Exception as e:
+            logger.error('delete failed, %s', e.message)
+            abort(400, message="delete failed, {}".format(e.message))
+
+        return {'data': uuid}, 201
 
 
 class RecordUpdate(Resource):
@@ -429,6 +447,7 @@ def run_daemon():
     api.add_resource(RecordInfo, '/show/<string:uuid>')
     api.add_resource(RecordList, '/list')
     api.add_resource(RecordAdd, '/add')
+    api.add_resource(RecordDelete, '/delete/<string:uuid>')
     api.add_resource(RecordUpdate, '/update/<string:uuid>')
     api.add_resource(FolderList, '/folders', '/folders/<string:uuid>')
     api.add_resource(ServerStatus, '/')

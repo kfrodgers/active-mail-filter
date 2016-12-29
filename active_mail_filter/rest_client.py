@@ -32,8 +32,8 @@ def post_url(url_route, params):
                'Accept': 'application/json'}
     try:
         url = _build_url(url_route=url_route)
-        datastr = json.dumps(params).replace(' ', '')
-        req = requests.post(url, data=datastr, headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
+        params_str = json.dumps(params).replace(' ', '')
+        req = requests.post(url, data=params_str, headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = req.status_code
         if req.headers['content-type'].find("json") < 0:
             response = req.text
@@ -45,11 +45,12 @@ def post_url(url_route, params):
     return status_code, response
 
 
-def put_url(url_route, params):
+def put_url(url_route, params=None):
     headers = {'content-type': 'application/json'}
     try:
         url = _build_url(url_route=url_route)
-        req = requests.put(url, data=json.dumps(params), headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
+        params_str = None if params is None else json.dumps(params)
+        req = requests.put(url, data=params_str, headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = req.status_code
         if req.headers['content-type'].find("json") < 0:
             response = req.text

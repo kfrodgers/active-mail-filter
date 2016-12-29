@@ -238,14 +238,30 @@ def modify_rule():
 
 
 def delete_rule():
-    usage = 'uuid [uuid2 uuid3 ...] '
-    if len(sys.argv) < 2:
+    usage = ('-p <password> '
+             'uuid [uuid2 uuid3 ...] ')
+
+    try:
+        options, remainder = getopt.getopt(sys.argv[1:], 'U:u:p:e:i:s:t:', [])
+    except getopt.GetoptError as err:
+        sys.stderr.write('{0!s}\n'.format(err))
         sys.exit(print_usage(usage))
 
-    for uuid in sys.argv[1:]:
-        url_route = '/show/%s' % uuid
-        status, data = delete_url(url_route=url_route)
-        if status != 204:
+    password = None
+    for opt, arg in options:
+        if opt == '-p':
+            password = arg
+        else:
+            sys.exit(print_usage(usage))
+
+    if password is None or len(remainder) < 1:
+        sys.exit(print_usage(usage))
+
+    params = {'password': password}
+    for uuid in remainder:
+        url_route = '/delete/%s' % uuid
+        status, data = post_url(url_route=url_route, params=params)
+        if status != 201:
             sys.stderr.write('Error: %s\n' % str(data['message']))
 
 
