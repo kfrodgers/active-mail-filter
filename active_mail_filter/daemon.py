@@ -306,12 +306,14 @@ class RecordAdd(Resource):
     def put(self):
         self.counters['put'] += 1
         args = self.parser.parse_args()
-        for key in [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]:
-            if args[key] is None:
-                logger.error('Missing [%s] keyword', key)
-                abort(400, message='Missing [{}] keyword'.format(key))
-
         try:
+            for key in [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]:
+                if args[key] is None:
+                    raise Exception('Missing [{}] keyword'.format(key))
+
+            mbox = MboxFolder(args[MAILSERVER], args[USER], args[PASSWORD])
+            mbox.disconnect()
+
             uuid = userdb.add_user(user=args[USER], email=args[EMAIL], password=args[PASSWORD],
                                    mail_server=args[MAILSERVER], source=args[SOURCE], target=args[TARGET])
             user_record = userdb.get_user_by_uuid(uuid)
@@ -335,11 +337,10 @@ class RecordDelete(Resource):
         super(RecordDelete, self).__init__()
 
     def post(self, uuid):
-        self.counters['delete'] += 1
+        self.counters['post'] += 1
         try:
             args = self.parser.parse_args()
             if args[PASSWORD] is None:
-                logger.error('Missing %s keyword', PASSWORD)
                 raise Exception('Missing {} keyword'.format(PASSWORD))
 
             user_record = userdb.get_user_by_uuid(uuid)
@@ -368,11 +369,16 @@ class RecordUpdate(Resource):
         self.counters['put'] += 1
         args = self.parser.parse_args()
         try:
+            if args[PASSWORD] is None:
+                raise Exception('Missing [{}] keyword'.format(PASSWORD))
+
             user_record = userdb.get_user_by_uuid(uuid)
             for key in args.keys():
                 if args[key] is not None:
                     user_record[key] = args[key]
 
+            mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
+            mbox.disconnect()
             userdb.update_user(record_uuid=uuid, user_record=user_record)
             del user_record[PASSWORD]
         except Exception as e:
@@ -410,12 +416,11 @@ class FolderList(Resource):
     def post(self):
         self.counters['post'] += 1
         args = self.parser.parse_args()
-        for key in [USER, PASSWORD, MAILSERVER]:
-            if args[key] is None:
-                logger.error('Missing %s keyword', key)
-                abort(400, message='Missing {} keyword'.format(key))
-
         try:
+            for key in [USER, PASSWORD, MAILSERVER]:
+                if args[key] is None:
+                    raise Exception('Missing [{}] keyword'.format(key))
+
             mbox = MboxFolder(args[MAILSERVER], args[USER], args[PASSWORD])
             folder_list = mbox.list_folders()
             mbox.disconnect()
