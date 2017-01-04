@@ -114,7 +114,7 @@ http://127.0.0.1:5000/ - List running threads <br />
 #### PUT
 http://127.0.0.1:5000/add - Add a new filter rule <br />
 *Parameter are 'user=', 'password=', 'email=', 'mail_server=', 'source=' and 'target='* <br />
-http://127.0.0.1:5000/update - Update an existing filter rule <br />
+http://127.0.0.1:5000/update/string:UUID - Update an existing filter rule <br />
 *Same parameters as above but only specify parameters that need to be updated* <br />
 
 #### DELETE
