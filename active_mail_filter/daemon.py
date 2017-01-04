@@ -411,7 +411,7 @@ class FolderList(Resource):
             logger.error('get folders failed, %s', e.message)
             abort(404, message='get folders failed, {}'.format(e.message))
 
-        return {'data': {uuid: folder_list}}, 201
+        return {'data': folder_list}, 201
 
     def post(self):
         self.counters['post'] += 1
@@ -429,7 +429,7 @@ class FolderList(Resource):
             logger.error('list folders failed, %s', str(e.message))
             abort(400, message='list folders failed, {}'.format(str(e.message)))
 
-        return {'data': {args[USER]: folder_list}}, 201
+        return {'data': folder_list}, 201
 
 
 def run_daemon():

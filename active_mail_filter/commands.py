@@ -6,7 +6,7 @@ import os
 import sys
 import getopt
 from active_mail_filter import read_configuration_file, write_configuration_file
-from active_mail_filter.rest_client import get_url, put_url, delete_url, post_url
+from active_mail_filter.rest_client import get_url, put_url, post_url
 
 PROGNAME = os.path.basename(sys.argv[0])
 
@@ -94,7 +94,7 @@ def check_folders(user, password, mail_server, source, target):
         sys.exit(status)
 
     # Special checks because inbox folder name is case insensitive
-    folders = data['data'][params['user']]
+    folders = data['data']
     if source.lower() != 'inbox' and source not in folders:
         sys.stderr.write('%s: Invalid source folder\n' % source)
         print_folders(folders)
@@ -162,6 +162,46 @@ def add_rule():
         sys.exit(status)
 
     sys.stdout.write('%s\n' % data['data']['uuid'])
+
+
+def list_folders():
+    usage = ('-u <username> '
+             '-p <password> '
+             '-i <imap-server> ')
+
+    try:
+        options, remainder = getopt.getopt(sys.argv[1:], 'u:p:i:', [])
+    except getopt.GetoptError as err:
+        sys.stderr.write('%s\n' % err)
+        sys.exit(print_usage(usage))
+
+    user = None
+    password = None
+    mail_server = None
+    for opt, arg in options:
+        if opt == '-u':
+            user = arg
+        elif opt == '-p':
+            password = arg
+        elif opt == '-i':
+            mail_server = arg
+        else:
+            sys.exit(print_usage(usage))
+
+    if None in [user, password, mail_server]:
+        sys.exit(print_usage(usage))
+
+    params = {'user': user,
+              'password': password,
+              'mail_server': mail_server}
+
+    status, data = post_url(url_route='/folders', params=params)
+    if status != 201:
+        sys.stderr.write('Error: %s\n' % str(data['message']))
+        sys.exit(status)
+
+    for folder in data['data']:
+        sys.stdout.write('%s\n' % folder)
 
 
 def modify_rule():
