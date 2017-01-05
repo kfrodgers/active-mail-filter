@@ -46,8 +46,9 @@ class MboxFolder(object):
         result, folders = self.imap.list()
         for f in folders:
             fields = f.split('"')
-            folder = fields[-2] if 'inbox' != fields[-2].lower() else fields[-2].lower()
-            folder_list.append(folder)
+            if '\\noselect' not in fields[0].lower():
+                folder = fields[-2] if 'inbox' != fields[-2].lower() else fields[-2].lower()
+                folder_list.append(folder)
         return folder_list
 
     def list_folder_counts(self):
