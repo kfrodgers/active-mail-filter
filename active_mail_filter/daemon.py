@@ -12,6 +12,7 @@ from flask import Flask, make_response, jsonify
 from flask_cors import CORS
 from flask_restful import Resource, Api, abort, reqparse
 from flask_httpauth import HTTPBasicAuth
+from gevent.wsgi import WSGIServer
 
 from active_mail_filter import get_logger, read_configuration_file, trace
 from active_mail_filter.imapuser import ImapUser
@@ -33,6 +34,7 @@ app = Flask(__name__)
 cors = CORS(app)
 api = Api(app)
 auth = HTTPBasicAuth()
+listen_address = (_CONF_.http_server.listen_address, _CONF_.getint('general', 'http_server_port'))
 ssl_context = (_CONF_.http_server.cert_file, _CONF_.http_server.pkey_file)
 
 ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
@@ -460,8 +462,8 @@ def run_daemon():
     api.add_resource(ServerStop, '/stop')
 
     if _CONF_.getboolean('general', 'use_ssl'):
-        app.run(host=_CONF_.http_server.listen_address, ssl_context=ssl_context,
-                port=_CONF_.getint('general', 'http_server_port'))
+        http_server = WSGIServer(listen_address, application=app, ssl_context=ssl_context)
     else:
-        app.run(host=_CONF_.http_server.listen_address,
-                port=_CONF_.getint('general', 'http_server_port'))
+        http_server = WSGIServer(listen_address, application=app)
+
+    http_server.serve_forever()

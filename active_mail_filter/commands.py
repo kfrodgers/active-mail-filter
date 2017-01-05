@@ -16,6 +16,14 @@ def print_usage(usage):
     return 2
 
 
+def print_to_out(message):
+    sys.stdout.write(message)
+
+
+def print_to_err(message):
+    sys.stderr.write(message)
+
+
 def list_rules():
     usage = '[-u <username>] '
 
@@ -24,7 +32,7 @@ def list_rules():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'u:', [])
     except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
+        print_to_err('%s\n' % err)
         sys.exit(print_usage(usage))
 
     user = None
@@ -37,19 +45,19 @@ def list_rules():
     status, data = get_url(url_route='/list')
     if status != 200:
         if 'message' in data:
-            sys.stderr.write('Error: %s\n' % str(data['message']))
+            print_to_err('Error: %s\n' % str(data['message']))
         else:
-            sys.stderr.write('Error: %s\n' % str(data))
+            print_to_err('Error: %s\n' % str(data))
         sys.exit(status)
     users = data['data']
 
-    sys.stdout.write(format_string % ('UUID', 'User', 'Server', 'Source', 'Target'))
+    print_to_out(format_string % ('UUID', 'User', 'Server', 'Source', 'Target'))
     for name in users.keys():
         if user is not None and user != name:
             continue
         for rec in users[name]:
-            sys.stdout.write(format_string % (rec['uuid'], rec['user'],
-                                              rec['mail_server'], rec['source'], rec['target']))
+            print_to_out(format_string % (rec['uuid'], rec['user'],
+                                          rec['mail_server'], rec['source'], rec['target']))
 
 
 def start_daemon():
@@ -66,21 +74,21 @@ def do_start_stop_daemon(command):
 
     status, data = post_url(url_route=command, params={})
     if status != 201:
-        sys.stderr.write('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data['message']))
 
     status, data = get_url(url_route='/')
     if status != 200:
-        sys.stderr.write('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data['message']))
     else:
         procs = data['data']
         for p in procs.keys():
-            sys.stdout.write('%s thread is running\n' % str(p))
+            print_to_out('%s thread is running\n' % str(p))
 
 
 def print_folders(folders):
-    sys.stderr.write('Valid folders are...\n')
+    print_to_err('Valid folders are...\n')
     for f in sorted(folders):
-        sys.stderr.write('\t%s\n' % f)
+        print_to_err('\t%s\n' % f)
 
 
 def check_folders(user, password, mail_server, source, target):
@@ -90,20 +98,20 @@ def check_folders(user, password, mail_server, source, target):
 
     status, data = post_url(url_route='/folders', params=params)
     if status != 201:
-        sys.stderr.write('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
 
     # Special checks because inbox folder name is case insensitive
     folders = data['data'].keys()
     if source.lower() != 'inbox' and source not in folders:
-        sys.stderr.write('%s: Invalid source folder\n' % source)
+        print_to_err('%s: Invalid source folder\n' % source)
         print_folders(folders)
         sys.exit(1)
 
     # can't use inbox, trash, sent or drafts as target folder
     excluded_folders = ['inbox', 'trash', 'sent', 'sent mail', 'draft', 'drafts']
     if target.lower() in excluded_folders or target not in folders:
-        sys.stderr.write('%s: Invalid target folder\n' % target)
+        print_to_err('%s: Invalid target folder\n' % target)
         print_folders(folders)
         sys.exit(1)
 
@@ -119,7 +127,7 @@ def add_rule():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'u:p:e:i:s:t:', [])
     except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
+        print_to_err('%s\n' % err)
         sys.exit(print_usage(usage))
 
     user = None
@@ -158,10 +166,10 @@ def add_rule():
 
     status, data = put_url(url_route='/add', params=params)
     if status != 201:
-        sys.stderr.write('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
 
-    sys.stdout.write('%s\n' % data['data']['uuid'])
+    print_to_out('%s\n' % data['data']['uuid'])
 
 
 def list_folders():
@@ -172,7 +180,7 @@ def list_folders():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'u:p:i:', [])
     except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
+        print_to_err('%s\n' % err)
         sys.exit(print_usage(usage))
 
     user = None
@@ -197,14 +205,14 @@ def list_folders():
 
     status, data = post_url(url_route='/folders', params=params)
     if status != 201:
-        sys.stderr.write('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
 
     for folder in sorted(data['data'], reverse=True):
         if data['data'][folder]:
-            sys.stdout.write('%s\n' % folder)
+            print_to_out('%s\n' % folder)
         else:
-            sys.stdout.write('%s (empty)\n' % folder)
+            print_to_out('%s (empty)\n' % folder)
 
 
 def modify_rule():
@@ -219,7 +227,7 @@ def modify_rule():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'U:u:p:e:i:s:t:', [])
     except getopt.GetoptError as err:
-        sys.stderr.write('{0!s}\n'.format(err))
+        print_to_err('{0!s}\n'.format(err))
         sys.exit(print_usage(usage))
 
     uuid = None
@@ -260,7 +268,7 @@ def modify_rule():
     url_route = '/show/%s' % uuid
     status, data = get_url(url_route=url_route)
     if status != 200:
-        sys.stderr.write('%s\n' % str(data))
+        print_to_err('%s\n' % str(data))
         sys.exit(status)
 
     old_params = data['data']
@@ -274,10 +282,10 @@ def modify_rule():
     url_route = '/update/%s' % uuid
     status, data = put_url(url_route=url_route, params=params)
     if status != 201:
-        sys.stderr.write('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
 
-    sys.stdout.write('%s\n' % data['data']['uuid'])
+    print_to_out('%s\n' % data['data']['uuid'])
 
 
 def delete_rule():
@@ -287,7 +295,7 @@ def delete_rule():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'U:u:p:e:i:s:t:', [])
     except getopt.GetoptError as err:
-        sys.stderr.write('{0!s}\n'.format(err))
+        print_to_err('{0!s}\n'.format(err))
         sys.exit(print_usage(usage))
 
     password = None
@@ -305,7 +313,7 @@ def delete_rule():
         url_route = '/delete/%s' % uuid
         status, data = post_url(url_route=url_route, params=params)
         if status != 201:
-            sys.stderr.write('Error: %s\n' % str(data['message']))
+            print_to_err('Error: %s\n' % str(data['message']))
 
 
 def update_config():
@@ -320,7 +328,7 @@ def update_config():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'vi:u:r:k:l:c:', [])
     except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
+        print_to_err('%s\n' % err)
         sys.exit(print_usage(usage))
 
     conf = read_configuration_file()
@@ -352,4 +360,4 @@ def update_config():
     try:
         write_configuration_file(conf=conf)
     except IOError as e:
-        sys.stderr.write('Error: %s\n' % str(e))
+        print_to_err('Error: %s\n' % str(e))

@@ -2,6 +2,7 @@ Flask
 Flask-HTTPAuth
 Flask-RESTful
 flask-cors
+gevent
 pycrypto
 redis
 requests
