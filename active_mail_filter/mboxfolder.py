@@ -50,8 +50,18 @@ class MboxFolder(object):
             folder_list.append(folder)
         return folder_list
 
+    def list_folder_counts(self):
+        folders = self.list_folders()
+        folder_dict = {}
+        for f in folders:
+            uids = self.list_email_uids(folder_name=f)
+            folder_dict[f] = len(uids) > 0
+        return folder_dict
+
     def is_valid_folder(self, folder_name):
         folders = self.list_folders()
+        if folder_name.lower() == 'inbox':
+            folder_name = folder_name.lower()
         return folder_name in folders
 
     def list_email_uids(self, folder_name="inbox", pattern="ALL"):

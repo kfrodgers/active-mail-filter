@@ -404,14 +404,14 @@ class FolderList(Resource):
         try:
             user_record = userdb.get_user_by_uuid(uuid)
             mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
-            folder_list = mbox.list_folders()
+            folder_dict = mbox.list_folder_counts()
             mbox.disconnect()
         except Exception as e:
-            folder_list = []
+            folder_dict = {}
             logger.error('get folders failed, %s', e.message)
             abort(404, message='get folders failed, {}'.format(e.message))
 
-        return {'data': folder_list}, 201
+        return {'data': folder_dict}, 201
 
     def post(self):
         self.counters['post'] += 1
@@ -422,14 +422,14 @@ class FolderList(Resource):
                     raise Exception('Missing [{}] keyword'.format(key))
 
             mbox = MboxFolder(args[MAILSERVER], args[USER], args[PASSWORD])
-            folder_list = mbox.list_folders()
+            folder_dict = mbox.list_folder_counts()
             mbox.disconnect()
         except Exception as e:
-            folder_list = []
+            folder_dict = {}
             logger.error('list folders failed, %s', str(e.message))
             abort(400, message='list folders failed, {}'.format(str(e.message)))
 
-        return {'data': folder_list}, 201
+        return {'data': folder_dict}, 201
 
 
 def run_daemon():

@@ -94,7 +94,7 @@ def check_folders(user, password, mail_server, source, target):
         sys.exit(status)
 
     # Special checks because inbox folder name is case insensitive
-    folders = data['data']
+    folders = data['data'].keys()
     if source.lower() != 'inbox' and source not in folders:
         sys.stderr.write('%s: Invalid source folder\n' % source)
         print_folders(folders)
@@ -200,8 +200,11 @@ def list_folders():
         sys.stderr.write('Error: %s\n' % str(data['message']))
         sys.exit(status)
 
-    for folder in data['data']:
-        sys.stdout.write('%s\n' % folder)
+    for folder in sorted(data['data'], reverse=True):
+        if data['data'][folder]:
+            sys.stdout.write('%s\n' % folder)
+        else:
+            sys.stdout.write('%s (empty)\n' % folder)
 
 
 def modify_rule():
