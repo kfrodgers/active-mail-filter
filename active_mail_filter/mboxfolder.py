@@ -46,7 +46,8 @@ class MboxFolder(object):
         result, folders = self.imap.list()
         for f in folders:
             fields = f.split('"')
-            folder_list.append(fields[-2])
+            folder = fields[-2] if 'inbox' != fields[-2].lower() else fields[-2].lower()
+            folder_list.append(folder)
         return folder_list
 
     def is_valid_folder(self, folder_name):
