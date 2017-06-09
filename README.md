@@ -28,21 +28,21 @@ sudo apt-get install python-dev
 sudo apt-get install redis-server
 sudo pip install -U pip
 sudo pip install ./active_mail_filter
-sudo cp ./active_mail_filter/conf/amf_daemon /etc/init.d/
-sudo chmod +x /etc/init.d/amf_daemon
+sudo cp ./active_mail_filter/conf/amfdaemon /etc/init.d/
+sudo chmod +x /etc/init.d/amfdaemon
 ```
 
 To start the daemon simply enter...
 
 ```bash
-sudo update-rc.d amf_daemon defaults
-sudo service amf_daemon start
+sudo update-rc.d amfdaemon defaults
+sudo service amfdaemon start
 ```
 
 To stop amf_daemon run...
 
 ```bash
-sudo service amf_daemon stop
+sudo service amfdaemon stop
 ```
 
 ## Mac OSX Install
