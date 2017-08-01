@@ -9,7 +9,7 @@ from email import message_from_string
 from active_mail_filter import get_logger, trace
 
 logger = get_logger()
-MAX_FETCH_HEADERS = 2048
+MAX_FETCH_HEADERS = 4098
 
 
 class MboxFolder(object):
@@ -86,7 +86,8 @@ class MboxFolder(object):
             msg_list = self.fetch_uid_headers(uid_list)
             for i in range(0, len(msg_list)):
                 if 'From' in msg_list[i]:
-                    from_list.add(msg_list[i]['From'].lower())
+                    from_string = self.extract_email_address(msg_list[i]['From'].lower())
+                    from_list.add(from_string)
         logger.debug('found %d from addresses' % len(from_list))
         return list(from_list)
 
@@ -165,11 +166,9 @@ class MboxFolder(object):
             raise LookupError('%lu not found' % uid)
 
     def list_email_uids_from_users(self, from_users, from_folder='inbox'):
-        email_addresses = list(set(self.extract_email_address(f) for f in from_users))
-
-        sub_pattern = 'FROM "%s"' % email_addresses[0]
-        for i in range(1, len(email_addresses)):
-            sub_pattern = 'OR %s FROM "%s"' % (sub_pattern, email_addresses[i])
+        sub_pattern = 'FROM "%s"' % from_users[0]
+        for i in range(1, len(from_users)):
+            sub_pattern = 'OR %s FROM "%s"' % (sub_pattern, from_users[i])
 
         pattern = '(%s)' % sub_pattern
         try:

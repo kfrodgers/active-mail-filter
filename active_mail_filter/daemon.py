@@ -450,6 +450,7 @@ def run_daemon():
             sys.exit(1)
 
     signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.signal(signal.SIGINT, sigterm_handler)
 
     api.add_resource(RecordInfo, '/show/<string:uuid>')
     api.add_resource(RecordList, '/list')
@@ -466,4 +467,8 @@ def run_daemon():
     else:
         http_server = WSGIServer(listen_address, application=app)
 
-    http_server.serve_forever()
+    try:
+        http_server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+

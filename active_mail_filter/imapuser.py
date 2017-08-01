@@ -7,7 +7,7 @@ from active_mail_filter import get_logger
 
 logger = get_logger()
 
-DEF_BATCH_SIZE = 32
+DEF_BATCH_SIZE = 80
 
 
 class ImapUser(object):
