@@ -463,9 +463,9 @@ def run_daemon():
     api.add_resource(ServerStop, '/stop')
 
     if _CONF_.getboolean('general', 'use_ssl'):
-        http_server = WSGIServer(listen_address, application=app, ssl_context=ssl_context)
+        http_server = WSGIServer(listen_address, application=app, ssl_context=ssl_context, log=logger, error_log=logger)
     else:
-        http_server = WSGIServer(listen_address, application=app)
+        http_server = WSGIServer(listen_address, application=app, log=logger, error_log=logger)
 
     try:
         http_server.serve_forever()

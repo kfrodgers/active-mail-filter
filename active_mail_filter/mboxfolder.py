@@ -193,17 +193,18 @@ class MboxFolder(object):
                 trace('%s not in %s', email_from.lower(), str(from_lower_users))
         return moved_uids
 
-    def delete_uid(self, uid):
-        result, data = self.imap.uid('STORE', uid, '+FLAGS', '(\Deleted)')
+    def delete_uids(self, uids):
+        uid_str = ",".join(uids)
+        result, data = self.imap.uid('STORE', uid_str, '+FLAGS', '(\Deleted)')
         if result == 'OK':
             self.imap.expunge()
         else:
-            logger.error('item not deleted, %s' % str(data))
+            logger.error('items not deleted, %s' % str(data))
 
     def move_uid(self, uid, to_folder):
         result, data = self.imap.uid('COPY', uid, to_folder)
         if result == 'OK':
-            self.delete_uid(uid)
+            self.delete_uids([uid])
         else:
             logger.error('item not copied, %s' % str(data))
 
