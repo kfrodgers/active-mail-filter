@@ -86,7 +86,7 @@ class MboxFolder(object):
             msg_list = self.fetch_uid_headers(uid_list)
             for i in range(0, len(msg_list)):
                 if 'From' in msg_list[i]:
-                    from_string = self.extract_email_address(msg_list[i]['From'].lower())
+                    from_string = msg_list[i]['From'].lower()
                     from_list.add(from_string)
         logger.debug('found %d from addresses' % len(from_list))
         return list(from_list)
@@ -181,12 +181,12 @@ class MboxFolder(object):
 
     def move_emails_from_users(self, from_users, to_folder, from_folder='inbox'):
         moved_uids = []
-        from_lower_users = [x.lower() for x in from_users]
-        email_uids = self.list_email_uids_from_users(from_users, from_folder=from_folder)
+        from_lower_users = list(set(self.extract_email_address(f) for f in from_users))
+        email_uids = self.list_email_uids_from_users(from_lower_users, from_folder=from_folder)
         for uid in email_uids:
             email_msg = self.fetch_uid_headers([uid])
             email_from = email_msg[0]['From']
-            if email_from.lower() in from_lower_users:
+            if email_from.lower() in from_users:
                 self.move_uid(uid, to_folder)
                 moved_uids.append(uid)
             else:

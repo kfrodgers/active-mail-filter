@@ -3,7 +3,7 @@ Description=Active Mail Filer Daemon
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/amf_daemon -s
+ExecStart=/usr/local/bin/amf_daemon -s
 KillMode=process
 
 [Install]
