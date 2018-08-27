@@ -61,8 +61,10 @@ def run_daemon():
         sys.stderr.write('%s\n' % err)
         sys.exit(1)
 
+    debug = False
     for opt, arg in options:
         if opt == '-v':
+            debug = True
             logger.setLevel(logging.DEBUG)
         elif opt == '-s':
             start_daemon_thread()
@@ -74,8 +76,8 @@ def run_daemon():
 
     try:
         if _CONF_.getboolean('general', 'use_ssl'):
-            app.run(host=listen_address[0], port=listen_address[1], debug=True)
+            app.run(host=listen_address[0], port=listen_address[1], debug=debug)
         else:
-            app.run(host=listen_address[0], port=listen_address[1], debug=True)
+            app.run(host=listen_address[0], port=listen_address[1], debug=debug)
     except KeyboardInterrupt:
         pass
