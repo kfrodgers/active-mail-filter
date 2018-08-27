@@ -1,2 +1,8 @@
+include DESCRIPTION.rst
+include CONTRIBUTORS.rst
+include AUTHORS.rst
+include LICENSE
 include requirements.txt
 include conf/*
+include active_mail_filter/*.yaml
+include active_mail_filter/*.html

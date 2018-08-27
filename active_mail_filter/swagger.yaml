@@ -1,0 +1,287 @@
+#
+#  Copyright (c) 2018 Too Symphony Solutions LLC, All Rights Reserved
+#
+swagger: '2.0'
+info:
+  description: Active Mail Filter API specification
+  version: 0.0.1
+  title: Active Mail Filter
+consumes:
+  - application/json
+produces:
+  - application/json
+basePath: /api
+paths:
+  /status:
+    post:
+      operationId: active_mail_filter.daemon.server_status_update
+      tags:
+      - server
+      summary: Enable/Disbale server settings
+      description: Starts the mail filterng process
+      parameters:
+      - name: debug
+        type: string
+        in: query
+        required: false
+        description: enable debug/verbose logging
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+  /start:
+    post:
+      operationId: active_mail_filter.daemon.server_start
+      tags:
+      - server
+      summary: Start/enable filtering
+      description: Starts the mail filterng process
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '400':
+          description: Server Already Running
+  /stop:
+    post:
+      operationId: active_mail_filter.daemon.server_stop
+      tags:
+      - server
+      summary: Stop/disable filtering
+      description: Stops the mail filterng process
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '400':
+          description: Server Already Stopped
+  /users:
+    get:
+      operationId: active_mail_filter.daemon.user_records_list
+      tags:
+      - users
+      summary: List all filtering records by user
+      description: List user records
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+  /show/{uuid}:
+    get:
+      operationId: active_mail_filter.daemon.user_record_get_by_uuid
+      tags:
+      - users
+      summary: Show user record
+      description: show user record by uuid
+      parameters:
+        - name: uuid
+          type: string
+          in: path
+          required: true
+          description: unique id of user
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '404':
+          description: Unknown User
+  /delete/{uuid}:
+    post:
+      operationId: active_mail_filter.daemon.user_record_delete
+      tags:
+      - users
+      summary: Delete user record
+      description: delete user record by uuid
+      parameters:
+        - name: uuid
+          type: string
+          in: path
+          required: true
+          description: unique id of user
+        - name: password
+          type: string
+          in: query
+          required: true
+          description: password of user
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '400':
+          description: Unknown User
+  /update/{uuid}:
+    post:
+      operationId: active_mail_filter.daemon.user_record_update
+      tags:
+      - users
+      summary: Update user record
+      description: update user record by uuid
+      parameters:
+        - name: uuid
+          type: string
+          in: path
+          required: true
+          description: unique id of user
+        - name: email
+          type: string
+          in: query
+          required: false
+          description: email address of user
+        - name: password
+          type: string
+          in: query
+          required: false
+          description: password of user
+        - name: mail_server
+          type: string
+          in: query
+          required: false
+          description: imap server
+        - name: source
+          type: string
+          in: query
+          required: false
+          description: source folder
+        - name: target
+          type: string
+          in: query
+          required: false
+          description: target folder
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '400':
+          description: Unknown User
+  /add:
+    post:
+      operationId: active_mail_filter.daemon.user_record_add
+      tags:
+      - users
+      summary: Update user record
+      description: update user record by uuid
+      parameters:
+        - name: uuid
+          type: string
+          in: query
+          required: true
+          description: unique id of user
+        - name: email
+          type: string
+          in: query
+          required: true
+          description: email address of user
+        - name: password
+          type: string
+          in: query
+          required: true
+          description: password of user
+        - name: mail_server
+          type: string
+          in: query
+          required: true
+          description: imap server
+        - name: source
+          type: string
+          in: query
+          required: true
+          description: source folder
+        - name: target
+          type: string
+          in: query
+          required: true
+          description: target folder
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '400':
+          description: Unknown User
+  /folders/{uuid}:
+    get:
+      operationId: active_mail_filter.daemon.folder_list_by_uuid
+      tags:
+      - folders
+      summary: List folders owned by user
+      description: list folder by uuid
+      parameters:
+        - name: uuid
+          type: string
+          in: path
+          required: true
+          description: unique id of user
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '404':
+          description: Unknown User
+  /folders:
+    get:
+      operationId: active_mail_filter.daemon.folder_list_by_user
+      tags:
+      - folders
+      summary: Update user record
+      description: update user record by uuid
+      parameters:
+        - name: user
+          type: string
+          in: path
+          required: true
+          description: login name of user
+        - name: password
+          type: string
+          in: query
+          required: true
+          description: password of user
+        - name: mail_server
+          type: string
+          in: query
+          required: true
+          description: imap server
+      responses:
+        '201':
+          description: OK
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+        '404':
+          description: Unknown User

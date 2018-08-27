@@ -6,7 +6,7 @@
 import os
 import sys
 import logging
-import simpleconfigparser
+import configparser
 
 CONF_FILE = os.getenv('AMF_CONF_FILE', '/usr/local/etc/amf.conf')
 _CONF_ = None
@@ -17,7 +17,7 @@ def read_configuration_file(refresh=False):
 
     # read configuration file, add missing parameters
     if _CONF_ is None or refresh:
-        _CONF_ = simpleconfigparser.simpleconfigparser()
+        _CONF_ = configparser.ConfigParser()
         _CONF_.read(CONF_FILE)
 
         default_conf = {'general': {'http_server_address': '127.0.0.1',
@@ -58,7 +58,7 @@ def write_configuration_file(conf):
 
 
 def get_logger():
-    return logging.getLogger(_CONF_.general.logger)
+    return logging.getLogger(_CONF_['general']['logger'])
 
 
 def trace(msg, *args, **kwargs):
@@ -68,9 +68,9 @@ def trace(msg, *args, **kwargs):
 
 
 def get_default_level():
-    if hasattr(logging, _CONF_.general.log_level):
-        level = getattr(logging, _CONF_.general.log_level)
-    elif _CONF_.general.log_level.lower() == 'trace':
+    if hasattr(logging, _CONF_['general']['log_level']):
+        level = getattr(logging, _CONF_['general']['log_level'])
+    elif _CONF_['general']['log_level'].lower() == 'trace':
         level = 4
     else:
         level = logging.INFO
@@ -81,7 +81,7 @@ def init_logging():
     logging.addLevelName(4, 'TRACE')
     try:
         log_file_format = '%(asctime)s - %(levelname)s - %(filename)s - line %(lineno)d - %(message)s'
-        logging.basicConfig(filename=_CONF_.general.log_file, format=log_file_format, level=get_default_level())
+        logging.basicConfig(filename=_CONF_['general']['log_file'], format=log_file_format, level=get_default_level())
     except IOError:
         log_file_format = '%(levelname)s:%(filename)s: %(message)s'
         logging.basicConfig(stream=sys.stderr, format=log_file_format)

@@ -28,7 +28,7 @@ setup(
                  'License :: OSI Approved :: Apache Software License',
                  'Programming Language :: Python :: 2.7'],
     keywords='filter, mail, imap',
-    packages=find_packages(exclude=['test*']),
+    packages=find_packages(exclude=['test/*.py', 'test_*']),
     scripts=[],
     entry_points={
         'console_scripts': ['amf_add_rule = active_mail_filter.commands:add_rule',

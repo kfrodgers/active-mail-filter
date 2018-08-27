@@ -1,3 +1,4 @@
+connexion
 Flask
 Flask-HTTPAuth
 Flask-RESTful
@@ -6,4 +7,3 @@ gevent
 pycrypto
 redis
 requests
-SimpleConfigParser

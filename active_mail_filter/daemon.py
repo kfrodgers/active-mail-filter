@@ -4,15 +4,8 @@
 
 import os
 import sys
-import getopt
 import logging
 import time
-import signal
-from flask import Flask, make_response, jsonify
-from flask_cors import CORS
-from flask_restful import Resource, Api, abort, reqparse
-from flask_httpauth import HTTPBasicAuth
-from gevent.wsgi import WSGIServer
 
 from active_mail_filter import get_logger, read_configuration_file, trace
 from active_mail_filter.imapuser import ImapUser
@@ -22,58 +15,37 @@ from active_mail_filter.stoppable_thread import StoppableThread
 from active_mail_filter.user_records import UUID, USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET
 
 _CONF_ = read_configuration_file()
-HOST = os.getenv('AMF_REDIS_SERVER', _CONF_.redis_server.redis_server_address)
 
 logger = get_logger()
 
-userdb = UserRecords(host=HOST,
-                     key=_CONF_.redis_server.redis_key,
-                     cipher=_CONF_.redis_server.cipher_key)
 
-app = Flask(__name__)
-cors = CORS(app)
-api = Api(app)
-auth = HTTPBasicAuth()
-listen_address = (_CONF_.http_server.listen_address, _CONF_.getint('general', 'http_server_port'))
-ssl_context = (_CONF_.http_server.cert_file, _CONF_.http_server.pkey_file)
-
-ARGUMENTS = [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]
-
-
-@auth.get_password
-def get_password(username):
-    password = None
-    if username == _CONF_.general.http_user:
-        password = _CONF_.general.http_password
-    return password
-
-
-@auth.error_handler
-def unauthorized():
-    return make_response(jsonify({'message': 'Unauthorized access'}), 403)
-
-
-def get_decarators():
-    decarators = []
-    if _CONF_.general.http_enable_auth.lower() in ['true', 'yes', 'on', '1']:
-        decarators.append(auth.login_required)
-
-    return decarators
+def _get_userdb():
+    if not hasattr(_get_userdb, 'userdb'):
+        host = os.getenv('AMF_REDIS_SERVER', _CONF_['redis_server']['redis_server_address'])
+        _get_userdb.userdb = UserRecords(host=host,
+                                         key=_CONF_['redis_server']['redis_key'],
+                                         cipher=_CONF_['redis_server']['cipher_key'])
+    return _get_userdb.userdb
 
 
 def worker_thread(rule_records):
     my_thread = StoppableThread.current_thread()
+    mailbox = None if len(rule_records) == 0 else MboxFolder(rule_records[0][MAILSERVER],
+                                                             rule_records[0][USER],
+                                                             rule_records[0][PASSWORD])
     for rule in rule_records:
         if my_thread.is_stopped():
             break
 
         logger.debug('%s: moving %s to %s on %s', rule[USER], rule[SOURCE], rule[TARGET], rule[MAILSERVER])
-        imap = ImapUser(rule[MAILSERVER], rule[USER], rule[PASSWORD],
-                        to_folder=rule[TARGET], from_folder=rule[SOURCE])
+        imap = ImapUser(mailbox, to_folder=rule[TARGET], from_folder=rule[SOURCE])
         cnt, moved_uids = imap.filter_mail()
         if cnt > 0:
             logger.info('%s: moved %d messages %s', my_thread.getName(), cnt, str(moved_uids))
         del imap
+
+    if mailbox is not None:
+        mailbox.disconnect()
 
 
 def sort_by_user(records):
@@ -101,7 +73,7 @@ def run_all_workers(users_jobs):
             th.join(5)
             if th.is_alive():
                 trace('%s: is still alive' % th.getName())
-                if th.elapsed_time() > 300:
+                if th.elapsed_time() > 900:
                     th.kill()
                     logger.error('%s: Thread appears hung, killing', th.getName())
                     mail_threads.remove(th)
@@ -113,7 +85,7 @@ def run_all_workers(users_jobs):
 def run_mail_daemon():
     my_thread = StoppableThread.current_thread()
     while not my_thread.is_stopped():
-        users = userdb.get_all_users()
+        users = _get_userdb().get_all_users()
         if len(users) > 0:
             mail_users = sort_by_user(users)
             start = time.time()
@@ -189,286 +161,131 @@ class DaemonAlreadyStopped(Exception):
     pass
 
 
-class ServerStatus(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        self.parser = reqparse.RequestParser()
-        self.parser.add_argument('debug')
-        super(ServerStatus, self).__init__()
-
-    def get(self):
-        self.counters['get'] += 1
-        return {'data': list_all_threads()}
-
-    def post(self):
-        self.counters['post'] += 1
-        args = self.parser.parse_args()
-        settings = {}
-        try:
-            debug = args['debug'].lower() in ['1', 'true', 't', 'yes', 'y']
-            settings['debug'] = debug
-            logger.info('debug set to %s', str(debug))
-            if debug:
-                logger.setLevel(logging.DEBUG)
-            else:
-                logger.setLevel(logging.INFO)
-        except AttributeError:
-            pass
-
-        return {'data': settings}, 201
+def get_server_status():
+    return {'data': list_all_threads()}
 
 
-class ServerStart(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        super(ServerStart, self).__init__()
-
-    def post(self):
-        self.counters['post'] += 1
-        try:
-            start_daemon_thread()
-        except DaemonAlreadyRunning:
-            abort(400, message='server already running')
-
-        return {'data': list_all_threads()}, 201
-
-
-class ServerStop(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        super(ServerStop, self).__init__()
-
-    def post(self):
-        self.counters['post'] += 1
-        try:
-            th = stop_daemon_thread()
-            th.join()
-        except DaemonAlreadyStopped:
-            abort(400, message='server already stopped')
-
-        return {'data': list_all_threads()}, 201
-
-
-class RecordList(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        super(RecordList, self).__init__()
-
-    def get(self):
-        self.counters['get'] += 1
-        users = userdb.get_all_users()
-        email_info = {}
-        for u in users:
-            email = u[EMAIL]
-            if email not in email_info:
-                email_info[email] = []
-            del u[PASSWORD]
-            email_info[email].append(u)
-        return {'data': email_info}
-
-
-class RecordInfo(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        super(RecordInfo, self).__init__()
-
-    def get(self, uuid):
-        self.counters['get'] += 1
-        try:
-            user_record = userdb.get_user_by_uuid(uuid)
-            del user_record[PASSWORD]
-        except Exception as e:
-            user_record = {}
-            logger.error('get failed, %s', e.message)
-            abort(404, message="get failed, {}".format(e.message))
-
-        return {'data': user_record}
-
-
-class RecordAdd(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        self.parser = reqparse.RequestParser()
-        for arg in ARGUMENTS:
-            self.parser.add_argument(arg)
-        super(RecordAdd, self).__init__()
-
-    def put(self):
-        self.counters['put'] += 1
-        args = self.parser.parse_args()
-        try:
-            for key in [USER, PASSWORD, MAILSERVER, EMAIL, SOURCE, TARGET]:
-                if args[key] is None:
-                    raise Exception('Missing [{}] keyword'.format(key))
-
-            mbox = MboxFolder(args[MAILSERVER], args[USER], args[PASSWORD])
-            mbox.disconnect()
-
-            uuid = userdb.add_user(user=args[USER], email=args[EMAIL], password=args[PASSWORD],
-                                   mail_server=args[MAILSERVER], source=args[SOURCE], target=args[TARGET])
-            user_record = userdb.get_user_by_uuid(uuid)
-            del user_record[PASSWORD]
-        except Exception as e:
-            user_record = None
-            logger.error('add failed, %s', e.message)
-            abort(400, message='add failed, {}'.format(e.message))
-
-        return {'data': user_record}, 201
-
-
-class RecordDelete(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        self.parser = reqparse.RequestParser()
-        for arg in ARGUMENTS:
-            self.parser.add_argument(arg)
-        super(RecordDelete, self).__init__()
-
-    def post(self, uuid):
-        self.counters['post'] += 1
-        try:
-            args = self.parser.parse_args()
-            if args[PASSWORD] is None:
-                raise Exception('Missing {} keyword'.format(PASSWORD))
-
-            user_record = userdb.get_user_by_uuid(uuid)
-            mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], args[PASSWORD])
-            mbox.disconnect()
-            logger.debug('delete %s/%s', user_record[USER], user_record[UUID])
-            userdb.del_record(uuid)
-        except Exception as e:
-            logger.error('delete failed, %s', e.message)
-            abort(400, message="delete failed, {}".format(e.message))
-
-        return {'data': uuid}, 201
-
-
-class RecordUpdate(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        self.parser = reqparse.RequestParser()
-        for arg in ARGUMENTS:
-            self.parser.add_argument(arg)
-        super(RecordUpdate, self).__init__()
-
-    def put(self, uuid):
-        self.counters['put'] += 1
-        args = self.parser.parse_args()
-        try:
-            if args[PASSWORD] is None:
-                raise Exception('Missing [{}] keyword'.format(PASSWORD))
-
-            user_record = userdb.get_user_by_uuid(uuid)
-            for key in args.keys():
-                if args[key] is not None:
-                    user_record[key] = args[key]
-
-            mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
-            mbox.disconnect()
-            userdb.update_user(record_uuid=uuid, user_record=user_record)
-            del user_record[PASSWORD]
-        except Exception as e:
-            user_record = {}
-            logger.error('update failed, %s', e.message)
-            abort(400, message='update failed, {}'.format(e.message))
-
-        return {'data': user_record}, 201
-
-
-class FolderList(Resource):
-    decorators = get_decarators()
-
-    def __init__(self):
-        self.counters = {'get': 0, 'put': 0, 'post': 0, 'delete': 0}
-        self.parser = reqparse.RequestParser()
-        for arg in ARGUMENTS:
-            self.parser.add_argument(arg)
-        super(FolderList, self).__init__()
-
-    def get(self, uuid):
-        self.counters['get'] += 1
-        try:
-            user_record = userdb.get_user_by_uuid(uuid)
-            mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
-            folder_dict = mbox.list_folder_counts()
-            mbox.disconnect()
-        except Exception as e:
-            folder_dict = {}
-            logger.error('get folders failed, %s', e.message)
-            abort(404, message='get folders failed, {}'.format(e.message))
-
-        return {'data': folder_dict}, 201
-
-    def post(self):
-        self.counters['post'] += 1
-        args = self.parser.parse_args()
-        try:
-            for key in [USER, PASSWORD, MAILSERVER]:
-                if args[key] is None:
-                    raise Exception('Missing [{}] keyword'.format(key))
-
-            mbox = MboxFolder(args[MAILSERVER], args[USER], args[PASSWORD])
-            folder_dict = mbox.list_folder_counts()
-            mbox.disconnect()
-        except Exception as e:
-            folder_dict = {}
-            logger.error('list folders failed, %s', str(e.message))
-            abort(400, message='list folders failed, {}'.format(str(e.message)))
-
-        return {'data': folder_dict}, 201
-
-
-def run_daemon():
-    try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'vs', [])
-    except getopt.GetoptError as err:
-        sys.stderr.write('%s\n' % err)
-        sys.exit(1)
-
-    for opt, arg in options:
-        if opt == '-v':
-            logger.setLevel(logging.DEBUG)
-        elif opt == '-s':
-            start_daemon_thread()
-        else:
-            sys.exit(1)
-
-    signal.signal(signal.SIGTERM, sigterm_handler)
-    signal.signal(signal.SIGINT, sigterm_handler)
-
-    api.add_resource(RecordInfo, '/show/<string:uuid>')
-    api.add_resource(RecordList, '/list')
-    api.add_resource(RecordAdd, '/add')
-    api.add_resource(RecordDelete, '/delete/<string:uuid>')
-    api.add_resource(RecordUpdate, '/update/<string:uuid>')
-    api.add_resource(FolderList, '/folders', '/folders/<string:uuid>')
-    api.add_resource(ServerStatus, '/')
-    api.add_resource(ServerStart, '/start')
-    api.add_resource(ServerStop, '/stop')
-
-    if _CONF_.getboolean('general', 'use_ssl'):
-        http_server = WSGIServer(listen_address, application=app, ssl_context=ssl_context, log=logger, error_log=logger)
+def server_status_update(debug='false'):
+    debug_flag = debug.lower() in ['1', 'true', 't', 'yes', 'y']
+    logger.info('debug set to %s', str(debug))
+    if debug_flag:
+        logger.setLevel(logging.DEBUG)
     else:
-        http_server = WSGIServer(listen_address, application=app, log=logger, error_log=logger)
+        logger.setLevel(logging.INFO)
 
+    return {'data': list_all_threads()}, 201
+
+
+def server_start():
     try:
-        http_server.serve_forever()
-    except KeyboardInterrupt:
-        pass
+        start_daemon_thread()
+    except DaemonAlreadyRunning:
+        return 'server already running', 400
 
+    return {'data': list_all_threads()}, 201
+
+
+def server_stop():
+    try:
+        th = stop_daemon_thread()
+        th.join()
+    except DaemonAlreadyStopped:
+        return 'server already stopped', 400
+
+    return {'data': list_all_threads()}, 201
+
+
+def user_records_list():
+    users = _get_userdb().get_all_users()
+    email_info = {}
+    for u in users:
+        email = u[EMAIL]
+        if email not in email_info:
+            email_info[email] = []
+        del u[PASSWORD]
+        email_info[email].append(u)
+    return {'data': email_info}
+
+
+def user_record_get_by_uuid(uuid):
+    try:
+        user_record = _get_userdb().get_user_by_uuid(uuid)
+        del user_record[PASSWORD]
+    except Exception as e:
+        logger.error('get failed, %s', e.message)
+        return 'get failed, {}'.format(e.message), 404
+    
+    return {'data': user_record}
+
+
+def user_record_add(user, email, password, mail_server, source, target):
+    try:
+        mbox = MboxFolder(mail_server, user, password)
+        mbox.disconnect()
+
+        uuid = _get_userdb().add_user(user=user, email=email, password=password,
+                                      mail_server=mail_server, source=source, target=target)
+        user_record = _get_userdb().get_user_by_uuid(uuid)
+        del user_record[PASSWORD]
+    except Exception as e:
+        logger.error('add failed, %s', e.message)
+        return 'add failed, {}'.format(e.message), 400
+
+    return {'data': user_record}, 201
+
+
+def user_record_delete(uuid, password):
+    try:
+        user_record = _get_userdb().get_user_by_uuid(uuid)
+        mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], password)
+        mbox.disconnect()
+        logger.debug('delete %s/%s', user_record[USER], user_record[UUID])
+        _get_userdb().del_record(uuid)
+    except Exception as e:
+        logger.error('delete failed, %s', e.message)
+        return 'delete failed, {}'.format(e.message), 400
+
+    return {'data': uuid}, 201
+
+
+def user_record_update(uuid, **kwargs):
+    try:
+        user_record = _get_userdb().get_user_by_uuid(uuid)
+        for key in kwargs.keys():
+            user_record[key] = kwargs[key]
+
+        mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
+        mbox.disconnect()
+
+        _get_userdb().update_user(record_uuid=uuid, user_record=user_record)
+        del user_record[PASSWORD]
+    except Exception as e:
+        logger.error('update failed, %s', e.message)
+        return 'update failed, {}'.format(e.message), 400
+
+    return {'data': user_record}, 201
+
+
+def folder_list_by_uuid(uuid):
+    try:
+        user_record = _get_userdb().get_user_by_uuid(uuid)
+        mbox = MboxFolder(user_record[MAILSERVER], user_record[USER], user_record[PASSWORD])
+        folder_dict = mbox.list_folder_counts()
+        mbox.disconnect()
+    except Exception as e:
+        logger.error('get folders failed, %s', e.message)
+        return 'get folders failed, {}'.format(e.message), 404
+
+    return {'data': folder_dict}
+
+
+def folder_list_by_user(user, password, mail_server):
+    try:
+        mbox = MboxFolder(mail_server, user, password)
+        folder_dict = mbox.list_folder_counts()
+        mbox.disconnect()
+    except Exception as e:
+        logger.error('list folders failed, %s', str(e.message))
+        return 'list folders failed, {}'.format(str(e.message)), 404
+
+    return {'data': folder_dict}

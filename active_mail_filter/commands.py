@@ -42,7 +42,7 @@ def list_rules():
         else:
             sys.exit(print_usage(usage))
 
-    status, data = get_url(url_route='/list')
+    status, data = get_url(url_route='/api/users')
     if status != 200:
         if 'message' in data:
             print_to_err('Error: %s\n' % str(data['message']))
@@ -61,11 +61,11 @@ def list_rules():
 
 
 def start_daemon():
-    do_start_stop_daemon(command='/start')
+    do_start_stop_daemon(command='/api/start')
 
 
 def stop_daemon():
-    do_start_stop_daemon(command='/stop')
+    do_start_stop_daemon(command='/api/stop')
 
 
 def do_start_stop_daemon(command):
@@ -74,11 +74,10 @@ def do_start_stop_daemon(command):
 
     status, data = post_url(url_route=command, params={})
     if status != 201:
-        print_to_err('Error: %s\n' % str(data['message']))
-
-    status, data = get_url(url_route='/')
-    if status != 200:
-        print_to_err('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %r\n' % data)
+    status, data = post_url(url_route='/api/status', params=dict(debug='true'))
+    if status != 201:
+        print_to_err('Error: %r\n' % data)
     else:
         procs = data['data']
         for p in procs.keys():
@@ -96,7 +95,7 @@ def check_folders(user, password, mail_server, source, target):
               'password': password,
               'mail_server': mail_server}
 
-    status, data = post_url(url_route='/folders', params=params)
+    status, data = get_url(url_route='/api/folders', params=params)
     if status != 201:
         print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
@@ -164,7 +163,7 @@ def add_rule():
 
     check_folders(user, password, mail_server, source, target)
 
-    status, data = put_url(url_route='/add', params=params)
+    status, data = put_url(url_route='/api/add', params=params)
     if status != 201:
         print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
@@ -203,7 +202,7 @@ def list_folders():
               'password': password,
               'mail_server': mail_server}
 
-    status, data = post_url(url_route='/folders', params=params)
+    status, data = get_url(url_route='/api/folders', params=params)
     if status != 201:
         print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
@@ -279,7 +278,7 @@ def modify_rule():
     check_folders(params['user'], params['password'], params['mail_server'],
                   params['source'], params['target'])
 
-    url_route = '/update/%s' % uuid
+    url_route = '/api/update/%s' % uuid
     status, data = put_url(url_route=url_route, params=params)
     if status != 201:
         print_to_err('Error: %s\n' % str(data['message']))
@@ -310,7 +309,7 @@ def delete_rule():
 
     params = {'password': password}
     for uuid in remainder:
-        url_route = '/delete/%s' % uuid
+        url_route = '/api/delete/%s' % uuid
         status, data = post_url(url_route=url_route, params=params)
         if status != 201:
             print_to_err('Error: %s\n' % str(data['message']))

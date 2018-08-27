@@ -8,10 +8,10 @@ import json
 from active_mail_filter import read_configuration_file, get_logger
 
 conf = read_configuration_file()
-HOST = os.getenv('AMF_HTTP_SERVER', conf.general.http_server_address)
-PORT = os.getenv('AMF_HTTP_PORT', conf.general.http_server_port)
-AUTH = (conf.general.http_user, conf.general.http_password)
-CERT = (conf.http_server.cert_file, conf.http_server.pkey_file)
+HOST = os.getenv('AMF_HTTP_SERVER', conf['general']['http_server_address'])
+PORT = os.getenv('AMF_HTTP_PORT', conf['general']['http_server_port'])
+AUTH = (conf['general']['http_user'], conf['general']['http_password'])
+CERT = (conf['http_server']['cert_file'], conf['http_server']['pkey_file'])
 USE_SSL = conf.getboolean('general', 'use_ssl')
 VERIFY_SSL = conf.getboolean('general', 'verify_ssl')
 
@@ -62,10 +62,11 @@ def put_url(url_route, params=None):
     return status_code, response
 
 
-def get_url(url_route):
+def get_url(url_route, params=None):
     try:
         url = _build_url(url_route=url_route)
-        data = requests.get(url, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
+        params_str = None if params is None else json.dumps(params)
+        data = requests.get(url, data=params_str, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = data.status_code
         if data.headers['content-type'].find("json") < 0:
             response = data.text

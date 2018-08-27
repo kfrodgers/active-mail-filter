@@ -26,9 +26,9 @@ class MboxFolder(object):
 
     def connect(self):
         if self.imap is None:
-            logger.debug('imap connecting to host %s:%d' % (self.host, imaplib.IMAP4_SSL_PORT))
+            logger.debug('imap connecting to host %s' % self.host)
             try:
-                self.imap = imaplib.IMAP4_SSL(self.host, port=imaplib.IMAP4_SSL_PORT)
+                self.imap = imaplib.IMAP4_SSL(self.host)
                 self.imap.login(self.username, self.password)
             except Exception as e:
                 logger.error('connection failure, %s.', str(e.message))
