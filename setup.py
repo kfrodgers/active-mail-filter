@@ -32,7 +32,7 @@ setup(
     scripts=[],
     entry_points={
         'console_scripts': ['amf_add_rule = active_mail_filter.commands:add_rule',
-                            'amf_daemon = active_mail_filter.daemon:run_daemon',
+                            'amf_daemon = active_mail_filter.server:run_daemon',
                             'amf_del_rule = active_mail_filter.commands:delete_rule',
                             'amf_list_rules = active_mail_filter.commands:list_rules',
                             'amf_mod_rule = active_mail_filter.commands:modify_rule',
@@ -41,5 +41,7 @@ setup(
                             'amf_update_conf = active_mail_filter.commands:update_config']
     },
     install_requires=install_requires,
-    data_files=[('/usr/local/etc/', ['conf/amf.conf'])]
+    data_files=[
+        ('/active_mail_filter', ['active_mail_filter/index.html', 'active_mail_filter/swagger.yaml']),
+    ],
 )
