@@ -17,7 +17,7 @@ VERIFY_SSL = conf.getboolean('general', 'verify_ssl')
 
 logger = get_logger()
 
-requests.packages.urllib3.disable_warnings()
+#requests.packages.urllib3.disable_warnings()
 
 
 def _build_url(url_route='/'):
@@ -32,8 +32,7 @@ def post_url(url_route, params):
                'Accept': 'application/json'}
     try:
         url = _build_url(url_route=url_route)
-        params_str = json.dumps(params).replace(' ', '')
-        req = requests.post(url, data=params_str, headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
+        req = requests.post(url, params=params, headers=headers, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = req.status_code
         if req.headers['content-type'].find("json") < 0:
             response = req.text
@@ -65,8 +64,7 @@ def put_url(url_route, params=None):
 def get_url(url_route, params=None):
     try:
         url = _build_url(url_route=url_route)
-        params_str = None if params is None else json.dumps(params)
-        data = requests.get(url, data=params_str, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
+        data = requests.get(url, params=params, auth=AUTH, verify=VERIFY_SSL, cert=CERT)
         status_code = data.status_code
         if data.headers['content-type'].find("json") < 0:
             response = data.text

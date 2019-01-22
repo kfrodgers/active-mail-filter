@@ -91,11 +91,10 @@ def print_folders(folders):
 
 
 def check_folders(user, password, mail_server, source, target):
-    params = {'user': user,
-              'password': password,
+    params = {'password': password,
               'mail_server': mail_server}
 
-    status, data = get_url(url_route='/api/folders', params=params)
+    status, data = get_url(url_route='/api/folders/%s' % user, params=params)
     if status != 201:
         print_to_err('Error: %s\n' % str(data['message']))
         sys.exit(status)
@@ -198,13 +197,12 @@ def list_folders():
     if None in [user, password, mail_server]:
         sys.exit(print_usage(usage))
 
-    params = {'user': user,
-              'password': password,
+    params = {'password': password,
               'mail_server': mail_server}
 
-    status, data = get_url(url_route='/api/folders', params=params)
+    status, data = get_url(url_route='/api/folders/%s' % user, params=params)
     if status != 201:
-        print_to_err('Error: %s\n' % str(data['message']))
+        print_to_err('Error: %s\n' % str(data))
         sys.exit(status)
 
     for folder in sorted(data['data'], reverse=True):
